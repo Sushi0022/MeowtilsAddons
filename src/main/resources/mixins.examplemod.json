@@ -1,8 +1,20 @@
 {
   "package": "${basePackage}.mixin",
-  "plugin": "${basePackage}.init.AutoDiscoveryMixinPlugin",
-  "refmap": "mixins.${modid}.refmap.json",
+  "refmap": "mixins.injectors.refmap.json",
   "minVersion": "0.7",
   "compatibilityLevel": "JAVA_8",
-  "__comment": "You do not need to manually register mixins in this template. Check the auto discovery mixin plugin for more info."
+  "__comment": "You do not need to manually register mixins in this template. Check the auto discovery mixin plugin for more info.",
+  "mixins": [
+    "meowtils.MixinMeowtilsCommand",
+    "meowtils.MixinMeowtilsRoot",
+    "meowtils.MixinModuleManager",
+    "meowtils.MixinClickGUI",
+    "meowtils.MixinModuleSetState",
+    "MixinGuiMainMenu",
+    "net.MixinNetHandlerPlayClient"
+  ],
+  "client": [
+  ],
+  "server": [
+  ]
 }

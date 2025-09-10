@@ -1,16 +1,16 @@
 [
   {
-    "modid": "${modid}",
-    "name": "Xample Mod",
-    "description": "A mod that is used as an example.",
+    "modid": "examplemod",
+    "name": "Meowtils Injector",
+    "description": "A mod that modifies Meowtils to add custom features.",
     "version": "${version}",
     "mcversion": "${mcversion}",
-    "url": "https://github.com/romangraef/Forge1.8.9Template/",
+    "url": "",
     "updateUrl": "",
     "authorList": [
-      "You"
+      "Mega"
     ],
-    "credits": "",
+    "credits": "Thanks to tatp for making Meowtils.",
     "logoFile": "",
     "screenshots": [],
     "dependencies": []

@@ -45,6 +45,8 @@ loom {
         pack200Provider.set(dev.architectury.pack200.java.Pack200Adapter())
         // If you don't want mixins, remove this lines
         mixinConfig("mixins.$modid.json")
+        // Also register a stable mixin config name that doesn't depend on modid/jar name
+        mixinConfig("mixins.injectors.json")
 	    if (transformerFile.exists()) {
 			println("Installing access transformer")
 		    accessTransformer(transformerFile)
@@ -52,7 +54,8 @@ loom {
     }
     // If you don't want mixins, remove these lines
     mixin {
-        defaultRefmapName.set("mixins.$modid.refmap.json")
+        // Use a stable refmap name so renaming the jar or changing modid doesn't break runtime
+        defaultRefmapName.set("mixins.injectors.refmap.json")
     }
 }
 
@@ -87,6 +90,9 @@ dependencies {
     // If you don't want to log in with your real minecraft account, remove this line
     runtimeOnly("me.djtheredstoner:DevAuth-forge-legacy:1.2.1")
 
+    // CFR Java decompiler for the '/injection decompile' subcommand
+    shadowImpl("org.benf:cfr:0.152")
+
 }
 
 // Tasks:
@@ -103,7 +109,8 @@ tasks.withType(org.gradle.jvm.tasks.Jar::class) {
 
         // If you don't want mixins, remove these lines
         this["TweakClass"] = "org.spongepowered.asm.launch.MixinTweaker"
-        this["MixinConfigs"] = "mixins.$modid.json"
+        // Advertise both the modid-derived and the stable mixin config names
+        this["MixinConfigs"] = "mixins.$modid.json,mixins.injectors.json"
 	    if (transformerFile.exists())
 			this["FMLAT"] = "${modid}_at.cfg"
     }
@@ -117,6 +124,15 @@ tasks.processResources {
 
     filesMatching(listOf("mcmod.info", "mixins.$modid.json")) {
         expand(inputs.properties)
+    }
+
+    // Also output a stable-named mixin config alongside the modid-based one if it exists
+    val modidMixin = file("src/main/resources/mixins.$modid.json")
+    if (modidMixin.exists()) {
+        from(modidMixin) {
+            rename { _ -> "mixins.injectors.json" }
+            expand(inputs.properties)
+        }
     }
 
     rename("accesstransformer.cfg", "META-INF/${modid}_at.cfg")
