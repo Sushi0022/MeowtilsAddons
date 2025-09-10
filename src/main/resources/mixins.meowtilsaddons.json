@@ -6,10 +6,7 @@
   "__comment": "You do not need to manually register mixins in this template. Check the auto discovery mixin plugin for more info.",
   "mixins": [
     "meowtils.MixinMeowtilsCommand",
-    "meowtils.MixinMeowtilsRoot",
     "meowtils.MixinModuleManager",
-    "meowtils.MixinClickGUI",
-    "meowtils.MixinModuleSetState",
     "MixinGuiMainMenu",
     "net.MixinNetHandlerPlayClient"
   ],

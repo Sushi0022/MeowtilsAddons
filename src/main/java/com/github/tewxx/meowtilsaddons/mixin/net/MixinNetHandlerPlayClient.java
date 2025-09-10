@@ -1,6 +1,5 @@
-package com.example.mixin.net;
+package com.github.tewxx.meowtilsaddons.mixin.net;
 
-import com.example.InjectionState;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.network.Packet;
 import org.spongepowered.asm.mixin.Mixin;
@@ -19,7 +18,7 @@ public abstract class MixinNetHandlerPlayClient {
     @Inject(method = "addToSendQueue", at = @At("HEAD"))
     private void onAddToSendQueue(Packet packet, CallbackInfo ci) {
         try {
-            Collection<Object> values = InjectionState.latestInjectedModuleInstances.values();
+            Collection<Object> values = com.github.tewxx.meowtilsaddons.InjectionState.latestInjectedModuleInstances.values();
             if (values == null || values.isEmpty()) return;
             for (Object module : values) {
                 if (module == null) continue;

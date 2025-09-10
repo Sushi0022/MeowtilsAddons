@@ -70,6 +70,8 @@ repositories {
     maven("https://repo.spongepowered.org/maven/")
     // If you don't want to log in with your real minecraft account, remove this line
     maven("https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1")
+    // Local libs folder for Meowtils dev jar
+    flatDir { dirs("libs") }
 }
 
 val shadowImpl: Configuration by configurations.creating {
@@ -93,6 +95,14 @@ dependencies {
     // CFR Java decompiler for the '/injection decompile' subcommand
     shadowImpl("org.benf:cfr:0.152")
 
+    // Janino runtime compiler (for compiling injected module sources)
+    shadowImpl("org.codehaus.janino:janino:3.1.10")
+    shadowImpl("org.codehaus.janino:commons-compiler:3.1.10")
+    
+    // Compile against Meowtils without bundling it. Place the Meowtils dev jar in the 'libs' folder.
+    // Example file name: Meowtils-1.8.9-dev.jar
+    compileOnly(fileTree("libs") { include("*.jar") })
+
 }
 
 // Tasks:
@@ -104,14 +114,13 @@ tasks.withType(JavaCompile::class) {
 tasks.withType(org.gradle.jvm.tasks.Jar::class) {
     archiveBaseName.set(modid)
     manifest.attributes.run {
+        this["FMLCorePlugin"] = "com.github.meowtilsaddons.MixinLoader"
         this["FMLCorePluginContainsFMLMod"] = "true"
         this["ForceLoadAsMod"] = "true"
-
-        // If you don't want mixins, remove these lines
         this["TweakClass"] = "org.spongepowered.asm.launch.MixinTweaker"
-        // Advertise both the modid-derived and the stable mixin config names
-        this["MixinConfigs"] = "mixins.$modid.json,mixins.injectors.json"
-	    if (transformerFile.exists())
+        this["TweakOrder"] = 0
+        this["MixinConfigs"] = "mixins.injectors.json,mixins.${project.property("modid")}.json"
+        if (transformerFile.exists())
 			this["FMLAT"] = "${modid}_at.cfg"
     }
 }

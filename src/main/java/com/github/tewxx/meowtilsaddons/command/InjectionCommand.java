@@ -1,18 +1,16 @@
-package com.example.command;
+package com.github.tewxx.meowtilsaddons.command;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.event.ClickEvent;
-import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ChatStyle;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ModContainer;
+import com.github.tewxx.meowtilsaddons.InjectionState;
 
-import com.example.InjectionState;
-import com.example.runtime.ModuleInjector;
 import org.benf.cfr.reader.api.CfrDriver;
 
 import java.io.File;
@@ -122,7 +120,7 @@ public class InjectionCommand extends CommandBase {
                 lines.add("Sponge Mixin: " + u);
             } catch (Throwable t) { lines.add("Sponge Mixin: " + t.getClass().getSimpleName()); }
             try {
-                Class<?> self = com.example.runtime.ModuleInjector.class;
+                Class<?> self = com.github.tewxx.meowtilsaddons.runtime.ModuleInjector.class;
                 java.net.URL u = self.getProtectionDomain() == null || self.getProtectionDomain().getCodeSource() == null ? null : self.getProtectionDomain().getCodeSource().getLocation();
                 lines.add("ModuleInjector: " + u);
             } catch (Throwable t) { lines.add("ModuleInjector: " + t.getClass().getSimpleName()); }
@@ -249,12 +247,12 @@ public class InjectionCommand extends CommandBase {
             return;
         }
         if (args.length >= 1 && "registermodules".equalsIgnoreCase(args[0])) {
-            boolean ok = com.example.InjectionMod.tryRegisterModulesOnce();
+            boolean ok = com.github.tewxx.meowtilsaddons.InjectionMod.tryRegisterModulesOnce();
             if (ok) {
                 addClientChat("Tried to register modules. If you don't see them, try /injection refreshgui.");
             } else {
                 addClientChat("ModuleManager not ready; will retry in background.");
-                com.example.InjectionMod.scheduleStartupRegistrationWithRetries(3, 1000);
+                com.github.tewxx.meowtilsaddons.InjectionMod.scheduleStartupRegistrationWithRetries(3, 1000);
             }
             return;
         }
@@ -576,10 +574,39 @@ public class InjectionCommand extends CommandBase {
             }
         }
         // Track category for this name
-        com.example.InjectionState.meowtilsInjectedModuleCategories.put(name, categoryName);
+        com.github.tewxx.meowtilsaddons.InjectionState.meowtilsInjectedModuleCategories.put(name, categoryName);
+        // Generate editable source file for the injected module under config/MeowtilsInjectors/modules-src
+        try {
+            String simple = sanitizeSimpleNameForSource(name);
+            net.minecraftforge.fml.common.Loader loader = net.minecraftforge.fml.common.Loader.instance();
+            java.io.File cfgDir = loader.getConfigDir();
+            java.io.File srcDir = new java.io.File(cfgDir, "MeowtilsInjectors/modules-src");
+            if (!srcDir.exists()) srcDir.mkdirs();
+            java.io.File srcFile = new java.io.File(srcDir, simple + ".java");
+            String pkgCat = categoryName == null ? "utility" : categoryName.trim().toLowerCase(java.util.Locale.ROOT);
+            String pkg = "wtf.tatp.meowtils.modules." + pkgCat;
+            String className = simple;
+            String contents =
+                "package " + pkg + ";\n\n" +
+                "import wtf.tatp.meowtils.gui.Module;\n\n" +
+                "public class " + className + " extends Module {\n\n" +
+                "    public " + className + "() {\n" +
+                "        super(\"" + name.replace("\"","\\\"") + "\", \"\", \"\", Category." + capitalizeEnum(categoryName) + ");\n" +
+                "        this.tooltip(\"Injected module.\");\n" +
+                "    }\n\n" +
+                "}\n";
+            try {
+                java.nio.file.Files.write(srcFile.toPath(), contents.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            } catch (Throwable ignoredWrite) {}
+        } catch (Throwable ignoredGen) {}
+
+        // Add enum constant to Module.Modules at runtime (best-effort)
+        try {
+            com.github.tewxx.meowtilsaddons.runtime.EnumInjector.addModuleEnumConstant(name);
+        } catch (Throwable ignored) {}
         // Immediately create and add the module instance to ModuleManager list
         try {
-            Object module = ModuleInjector.createOrLoadRuntimeModule(name, name, categoryName, 0);
+            Object module = com.github.tewxx.meowtilsaddons.runtime.ModuleInjector.createOrLoadRuntimeModule(name, name, categoryName, 0);
             Class<?> mm = Class.forName("wtf.tatp.meowtils.gui.ModuleManager");
             java.lang.reflect.Method gm = mm.getDeclaredMethod("getModules");
             java.util.List list = (java.util.List) gm.invoke(null);
@@ -613,7 +640,7 @@ public class InjectionCommand extends CommandBase {
                 list.add(0, module);
                 int after = list.size();
                 try {
-                    com.example.InjectionState.latestInjectedModuleInstances.put(normalizeName(name), module);
+                    com.github.tewxx.meowtilsaddons.InjectionState.latestInjectedModuleInstances.put(normalizeName(name), module);
                 } catch (Throwable ignored) {}
                 // Dump a few module names for verification
                 try {
@@ -714,7 +741,7 @@ public class InjectionCommand extends CommandBase {
             java.util.List list = (java.util.List) gm.invoke(null);
             if (list == null) { addClientChat("Module list unavailable."); return; }
 
-            int idx = -1; Object old = null; boolean enabled = false; String category = com.example.InjectionState.meowtilsInjectedModuleCategories.get(name);
+            int idx = -1; Object old = null; boolean enabled = false; String category = com.github.tewxx.meowtilsaddons.InjectionState.meowtilsInjectedModuleCategories.get(name);
             for (int i = 0; i < list.size(); i++) {
                 Object m = list.get(i);
                 try {
@@ -744,7 +771,7 @@ public class InjectionCommand extends CommandBase {
 
             if (category == null || category.trim().isEmpty()) category = "Utility";
             // Recreate module; ModuleInjector will prioritize compiled source if present
-            Object module = com.example.runtime.ModuleInjector.createOrLoadRuntimeModule(name, name, category, 0);
+            Object module = com.github.tewxx.meowtilsaddons.runtime.ModuleInjector.createOrLoadRuntimeModule(name, name, category, 0);
             if (module == null) {
                 addClientChat("Reload failed to create module: '" + name + "'. Check your source compiles.");
                 return;
@@ -818,7 +845,7 @@ public class InjectionCommand extends CommandBase {
                 list.add(0, module);
             }
             try {
-                com.example.InjectionState.latestInjectedModuleInstances.put(normalizeName(name), module);
+                com.github.tewxx.meowtilsaddons.InjectionState.latestInjectedModuleInstances.put(normalizeName(name), module);
             } catch (Throwable ignored) {}
 
             // Debug: log new instance class and loader
@@ -840,7 +867,7 @@ public class InjectionCommand extends CommandBase {
 
             // Aggressively rebind any GUI/internal Module references (best-effort)
             try {
-                Object latest = com.example.InjectionState.latestInjectedModuleInstances.get(normalizeName(name));
+                Object latest = com.github.tewxx.meowtilsaddons.InjectionState.latestInjectedModuleInstances.get(normalizeName(name));
                 if (latest != null) {
                     // Replace in ModuleManager lists by name
                     try {
@@ -954,6 +981,23 @@ public class InjectionCommand extends CommandBase {
         s = s.replaceAll("[^A-Za-z0-9_]", "");
         if (s.isEmpty() || !Character.isJavaIdentifierStart(s.charAt(0))) s = "Injected" + s;
         return s;
+    }
+
+    private String capitalizeEnum(String cat) {
+        if (cat == null) return "Utility";
+        String c = cat.trim();
+        if (c.isEmpty()) return "Utility";
+        // Known categories in Meowtils enum are capitalized exact
+        String u = c.toLowerCase(java.util.Locale.ROOT);
+        if (u.equals("meowtils")) return "Meowtils";
+        if (u.equals("hypixel")) return "Hypixel";
+        if (u.equals("skywars")) return "Skywars";
+        if (u.equals("bedwars")) return "Bedwars";
+        if (u.equals("render")) return "Render";
+        if (u.equals("antisnipe")) return "Antisnipe";
+        if (u.equals("utility")) return "Utility";
+        if (u.equals("advanced")) return "Advanced";
+        return "Utility";
     }
 
     // Opens the given path in the OS file manager. On Windows, prefers Explorer with selection.
