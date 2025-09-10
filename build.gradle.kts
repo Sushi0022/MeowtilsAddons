@@ -29,6 +29,9 @@ loom {
         "client" {
             // If you don't want mixins, remove these lines
             property("mixin.debug", "true")
+            // Export transformed target classes to disk so we can build a patched jar
+            property("mixin.debug.export", "true")
+            property("mixin.debug.export.decompile", "true")
             arg("--tweakClass", "org.spongepowered.asm.launch.MixinTweaker")
         }
     }
@@ -38,6 +41,11 @@ loom {
                 // This argument causes a crash on macOS
                 vmArgs.remove("-XstartOnFirstThread")
             }
+            // Ensure transformed classes are exported for jar dumping
+            vmArgs.addAll(listOf(
+                "-Dmixin.debug.export=true",
+                "-Dmixin.debug.export.decompile=true"
+            ))
         }
         remove(getByName("server"))
     }
@@ -82,10 +90,12 @@ dependencies {
     forge("net.minecraftforge:forge:1.8.9-11.15.1.2318-1.8.9")
 
     // If you don't want mixins, remove these lines
+    // Runtime/library version for LaunchWrapper (1.8.9-friendly)
     shadowImpl("org.spongepowered:mixin:0.7.11-SNAPSHOT") {
         isTransitive = false
     }
-    annotationProcessor("org.spongepowered:mixin:0.8.5-SNAPSHOT")
+    // Mixin AP disabled to avoid compile-time AP issues; runtime mixin still works without refmap in dev
+    // annotationProcessor("org.spongepowered:mixin:0.7.11-SNAPSHOT")
 
     // If you don't want to log in with your real minecraft account, remove this line
     runtimeOnly("me.djtheredstoner:DevAuth-forge-legacy:1.2.1")
@@ -93,6 +103,13 @@ dependencies {
     // CFR Java decompiler for the '/injection decompile' subcommand
     shadowImpl("org.benf:cfr:0.152")
 
+    // Using Mixin 0.7.11 which is commonly used for 1.8.9 LaunchWrapper envs
+
+    // Allow compiling addon modules that extend Meowtils' Module without bundling it
+    compileOnly(fileTree("run/mods") {
+        include("Meowtils-*.jar")
+        include("meowtils-*.jar")
+    })
 }
 
 // Tasks:

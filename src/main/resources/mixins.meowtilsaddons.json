@@ -1,17 +1,13 @@
 {
-  "package": "${basePackage}.mixin",
+  "package": "com.github.tewxx.meowtilsaddons.mixin",
   "refmap": "mixins.injectors.refmap.json",
   "minVersion": "0.7",
   "compatibilityLevel": "JAVA_8",
   "__comment": "You do not need to manually register mixins in this template. Check the auto discovery mixin plugin for more info.",
   "mixins": [
-    "meowtils.MixinMeowtilsCommand",
-    "meowtils.MixinMeowtilsRoot",
     "meowtils.MixinModuleManager",
-    "meowtils.MixinClickGUI",
-    "meowtils.MixinModuleSetState",
-    "MixinGuiMainMenu",
-    "net.MixinNetHandlerPlayClient"
+    "meowtils.MixinCfg",
+    "minecraft.AccessorPlayerControllerMP"
   ],
   "client": [
   ],

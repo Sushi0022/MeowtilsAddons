@@ -1,6 +1,6 @@
 [
   {
-    "modid": "examplemod",
+    "modid": "${modid}",
     "name": "Meowtils Injector",
     "description": "A mod that modifies Meowtils to add custom features.",
     "version": "${version}",
