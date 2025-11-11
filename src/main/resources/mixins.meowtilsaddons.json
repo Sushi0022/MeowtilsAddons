@@ -10,7 +10,9 @@
     "meowtils.MixinModuleCategory",
     "meowtils.MixinModuleModules",
     "meowtils.MixinFrame",
-    "minecraft.AccessorPlayerControllerMP"
+    "minecraft.AccessorPlayerControllerMP",
+    "minecraft.MixinGuiIngameForgeScoreboard",
+    "minecraft.MixinGuiIngameScoreboard"
   ],
   "client": [
   ],

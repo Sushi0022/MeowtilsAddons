@@ -47,17 +47,22 @@ public class MixinModuleManager {
                         String line;
                         while ((line = br.readLine()) != null) {
                             String s = line.trim();
-                            if (s.isEmpty() || s.startsWith("#")) continue;
-                            rejectNames.add(s.toLowerCase(java.util.Locale.ROOT));
+                            if (s.isEmpty() || s.startsWith("#") || s.startsWith("//")) continue;
+                            String[] partsRN = s.split("\\|", 2);
+                            String classNameRN = partsRN[0].trim();
+                            String simpleRN = classNameRN;
+                            int idx = simpleRN.lastIndexOf('.');
+                            if (idx >= 0 && idx < simpleRN.length() - 1) simpleRN = simpleRN.substring(idx + 1);
+                            rejectNames.add(simpleRN.toLowerCase(java.util.Locale.ROOT));
                         }
                         br.close();
                     }
                 } catch (Throwable ignoredLoad) {}
                 // Always include sane defaults
                 rejectNames.add("speedmine");
-                rejectNames.add("auto fish");
                 rejectNames.add("autofish");
-                rejectNames.add("auto_fish");
+                rejectNames.add("levelfaker");
+
 
                 Class<?> mm = Class.forName("wtf.tatp.meowtils.gui.ModuleManager");
                 java.lang.reflect.Method getModules = mm.getDeclaredMethod("getModules");
@@ -120,6 +125,14 @@ public class MixinModuleManager {
                                         } catch (NoSuchMethodException ignored5) {}
                                         if (inst != null) {
                                             list.add(inst);
+                                            // Force all resource-instantiated modules into Rejects by default
+                                            if (rejects != null) {
+                                                try {
+                                                    java.lang.reflect.Field catField = inst.getClass().getSuperclass().getDeclaredField("category");
+                                                    catField.setAccessible(true);
+                                                    catField.set(inst, rejects);
+                                                } catch (Throwable ignoredSetCat) {}
+                                            }
                                             System.out.println("[MeowtilsAddons] Auto-registered module from resources: " + className);
                                         } else {
                                             System.out.println("[MeowtilsAddons] Could not instantiate module class: " + className);
@@ -192,9 +205,9 @@ public class MixinModuleManager {
                     }
                 } catch (Throwable ignoredLoad) {}
                 rejectNames.add("speedmine");
-                rejectNames.add("auto fish");
                 rejectNames.add("autofish");
-                rejectNames.add("auto_fish");
+                rejectNames.add("levelfaker");
+
 
                 // Obtain ModuleManager modules list via static field scan
                 Class<?> mm = Class.forName("wtf.tatp.meowtils.gui.ModuleManager");
@@ -265,6 +278,14 @@ public class MixinModuleManager {
                                         } catch (NoSuchMethodException ignored5) {}
                                         if (inst != null) {
                                             list.add(inst);
+                                            // Force all resource-instantiated modules into Rejects by default (static path)
+                                            if (rejects != null) {
+                                                try {
+                                                    java.lang.reflect.Field catField = inst.getClass().getSuperclass().getDeclaredField("category");
+                                                    catField.setAccessible(true);
+                                                    catField.set(inst, rejects);
+                                                } catch (Throwable ignoredSetCat) {}
+                                            }
                                             System.out.println("[MeowtilsAddons] Auto-registered module from resources: " + className);
                                         } else {
                                             System.out.println("[MeowtilsAddons] Could not instantiate module class: " + className);
