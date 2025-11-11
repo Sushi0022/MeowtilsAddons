@@ -7,6 +7,9 @@
   "mixins": [
     "meowtils.MixinModuleManager",
     "meowtils.MixinCfg",
+    "meowtils.MixinModuleCategory",
+    "meowtils.MixinModuleModules",
+    "meowtils.MixinFrame",
     "minecraft.AccessorPlayerControllerMP"
   ],
   "client": [

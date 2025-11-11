@@ -106,10 +106,9 @@ dependencies {
     // Using Mixin 0.7.11 which is commonly used for 1.8.9 LaunchWrapper envs
 
     // Allow compiling addon modules that extend Meowtils' Module without bundling it
-    compileOnly(fileTree("run/mods") {
-        include("Meowtils-*.jar")
-        include("meowtils-*.jar")
-    })
+    // IDE-friendly: look in both run/mods (dev runtime) and libs (checked-in jar)
+    compileOnly(fileTree("run/mods") { include("Meowtils-*.jar", "meowtils-*.jar") })
+    compileOnly(fileTree("libs") { include("Meowtils-*.jar", "meowtils-*.jar") })
 }
 
 // Tasks:
