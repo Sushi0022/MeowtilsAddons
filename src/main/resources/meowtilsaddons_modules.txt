@@ -1,0 +1,9 @@
+# Meowtils Addons module list
+# One per line. Format:
+# <fully.qualified.ModuleClass> | <category>
+# Lines starting with # or // are ignored. Empty lines are ignored.
+# Example entries:
+# wtf.tatp.meowtils.modules.utility.Sprint | utility
+# wtf.tatp.meowtils.modules.render.Cape | render
+wtf.tatp.meowtils.modules.utility.AutoFish | utility
+wtf.tatp.meowtils.modules.advanced.SpeedMine | advanced
