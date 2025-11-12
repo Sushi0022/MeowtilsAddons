@@ -23,19 +23,15 @@ public class MixinModuleManager {
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void meowtilsaddons$afterCtor(CallbackInfo ci) {
-        // 'this' is the ModuleManager instance
         ModuleManagerRef.set(this);
         ModuleInjector.inject(this);
 
-        // Relocate specific modules to Rejects after instance construction as well
         try {
-            // Ensure Rejects exists
             Module.Category rejects = null;
             for (Module.Category c : Module.Category.values()) {
                 if ("Rejects".equals(c.name())) { rejects = c; break; }
             }
             if (rejects != null) {
-                // Load rejects list from bundled resource: meowtilsaddons_modules.txt
                 java.util.Set<String> rejectNames = new java.util.HashSet<String>();
                 try {
                     java.io.InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream("meowtilsaddons_modules.txt");
@@ -58,7 +54,6 @@ public class MixinModuleManager {
                         br.close();
                     }
                 } catch (Throwable ignoredLoad) {}
-                // Always include sane defaults
                 rejectNames.add("speedmine");
                 rejectNames.add("autofish");
                 rejectNames.add("levelfaker");
@@ -68,7 +63,6 @@ public class MixinModuleManager {
                 java.lang.reflect.Method getModules = mm.getDeclaredMethod("getModules");
                 java.util.List list = (java.util.List) getModules.invoke(null);
                 if (list != null) {
-                    // 1) Ensure modules from resource are present (auto-register)
                     try {
                         java.io.InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream("meowtilsaddons_modules.txt");
                         if (is == null) is = MixinModuleManager.class.getClassLoader().getResourceAsStream("meowtilsaddons_modules.txt");
@@ -81,7 +75,6 @@ public class MixinModuleManager {
                                 String[] parts = s.split("\\|", 2);
                                 String className = parts[0].trim();
                                 String catStr = parts.length > 1 ? parts[1].trim() : "advanced";
-                                // Skip if already present by class
                                 boolean present = false;
                                 for (Object m : (java.util.List<?>) list) {
                                     if (m != null && m.getClass().getName().equals(className)) { present = true; break; }
@@ -97,7 +90,6 @@ public class MixinModuleManager {
                                             if (category == null) category = Module.Category.Advanced;
                                         } catch (Throwable ignoredCat) { category = Module.Category.Advanced; }
                                         Object inst = null;
-                                        // Try several constructors
                                         try {
                                             java.lang.reflect.Constructor<?> c = modCls.getDeclaredConstructor(String.class, String.class, String.class, Module.Category.class);
                                             c.setAccessible(true);
@@ -125,7 +117,6 @@ public class MixinModuleManager {
                                         } catch (NoSuchMethodException ignored5) {}
                                         if (inst != null) {
                                             list.add(inst);
-                                            // Force all resource-instantiated modules into Rejects by default
                                             if (rejects != null) {
                                                 try {
                                                     java.lang.reflect.Field catField = inst.getClass().getSuperclass().getDeclaredField("category");
@@ -146,13 +137,11 @@ public class MixinModuleManager {
                         }
                     } catch (Throwable ignoredEnsure) {}
 
-                    // 2) Relocate listed modules to Rejects
                     for (Object m : (java.util.List<?>) list) {
                         if (m == null) continue;
                         try {
                             String name = String.valueOf(m.getClass().getMethod("getName").invoke(m));
                             String simple = m.getClass().getSimpleName();
-                            // Normalize for matching
                             String low = name.toLowerCase(java.util.Locale.ROOT);
                             String lowSimple = simple == null ? "" : simple.toLowerCase(java.util.Locale.ROOT);
                             boolean listed = rejectNames.contains(low) || rejectNames.contains(lowSimple);
@@ -169,24 +158,19 @@ public class MixinModuleManager {
         } catch (Throwable ignored) { }
     }
 
-    // In case ModuleManager is only used statically, hook the static initializer after it completes
     @Inject(method = "<clinit>", at = @At("RETURN"))
     private static void meowtilsaddons$afterClinit(CallbackInfo ci) {
         try {
             ModuleInjector.injectStatic(Class.forName("wtf.tatp.meowtils.gui.ModuleManager"));
         } catch (Throwable ignored) { }
 
-        // Removed legacy AutoFish fallback to avoid hard compile dependency
 
-        // Move SpeedMine into Category.Rejects at runtime (if present)
         try {
-            // Find Rejects enum
             Module.Category rejects = null;
             for (Module.Category c : Module.Category.values()) {
                 if ("Rejects".equals(c.name())) { rejects = c; break; }
             }
             if (rejects != null) {
-                // Load rejects list from bundled resource
                 java.util.Set<String> rejectNames = new java.util.HashSet<String>();
                 try {
                     java.io.InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream("meowtilsaddons_modules.txt");
@@ -209,7 +193,6 @@ public class MixinModuleManager {
                 rejectNames.add("levelfaker");
 
 
-                // Obtain ModuleManager modules list via static field scan
                 Class<?> mm = Class.forName("wtf.tatp.meowtils.gui.ModuleManager");
                 java.util.List list = null;
                 for (java.lang.reflect.Field f : mm.getDeclaredFields()) {
@@ -223,7 +206,6 @@ public class MixinModuleManager {
                     }
                 }
                 if (list != null) {
-                    // 1) Ensure modules from resources are present
                     try {
                         java.io.InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream("meowtilsaddons_modules.txt");
                         if (is == null) is = MixinModuleManager.class.getClassLoader().getResourceAsStream("meowtilsaddons_modules.txt");
@@ -278,7 +260,6 @@ public class MixinModuleManager {
                                         } catch (NoSuchMethodException ignored5) {}
                                         if (inst != null) {
                                             list.add(inst);
-                                            // Force all resource-instantiated modules into Rejects by default (static path)
                                             if (rejects != null) {
                                                 try {
                                                     java.lang.reflect.Field catField = inst.getClass().getSuperclass().getDeclaredField("category");
@@ -299,7 +280,6 @@ public class MixinModuleManager {
                         }
                     } catch (Throwable ignoredEnsure) {}
 
-                    // 2) Relocate listed modules to Rejects
                     for (Object m : (java.util.List<?>) list) {
                         if (m == null) continue;
                         try {
@@ -321,5 +301,4 @@ public class MixinModuleManager {
         } catch (Throwable ignoredMove) { }
     }
 
-    // Removed the getModules() RETURN hook to avoid duplicate appends and toggle spam.
 }

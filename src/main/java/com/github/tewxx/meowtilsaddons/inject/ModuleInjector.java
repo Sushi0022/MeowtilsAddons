@@ -26,7 +26,6 @@ import java.util.Set;
 public final class ModuleInjector {
     private static final String RESOURCE_NAME = "meowtilsaddons_modules.txt";
     private static final String MODULE_BASE_CLASS = "wtf.tatp.meowtils.gui.Module";
-    // Avoid duplicate instantiation/registration across repeated hooks
     private static final Set<String> SEEN_CLASSES = new HashSet<>();
 
     private ModuleInjector() {}
@@ -42,7 +41,6 @@ public final class ModuleInjector {
             List<Object> toAdd = loadConfiguredModules(moduleBase);
             if (toAdd.isEmpty()) {
                 log("No modules to inject. (%s not found or empty)", RESOURCE_NAME);
-                // Even if we didn't add any, still produce a debug dump for visibility
                 dumpModules(moduleManagerInstance, moduleBase, "no-configured-modules");
                 return;
             }
@@ -53,7 +51,6 @@ public final class ModuleInjector {
             }
             log("Injected %d/%d module(s) into ModuleManager", added, toAdd.size());
 
-            // Always dump state after attempting injection
             dumpModules(moduleManagerInstance, moduleBase, "post-inject");
         } catch (Throwable t) {
             log("Injection failed: %s", String.valueOf(t));
@@ -61,9 +58,6 @@ public final class ModuleInjector {
         }
     }
 
-    /**
-     * Injection path for when ModuleManager uses static state only.
-     */
     public static void injectStatic(Class<?> moduleManagerClass) {
         try {
             if (!Loader.isModLoaded("meowtils")) {
@@ -145,7 +139,6 @@ public final class ModuleInjector {
         for (Object mod : modules) {
             if (mod == null) continue;
             try {
-                // Skip if a module of the same class is already present
                 if (isPresentStatic(mmClass, moduleBase, mod.getClass().getName())) continue;
                 register.invoke(null, mod);
                 added++;
@@ -156,7 +149,6 @@ public final class ModuleInjector {
 
     private static boolean isPresentStatic(Class<?> mmClass, Class<?> moduleBase, String className) {
         try {
-            // Probe static List fields for existing modules
             for (Field f : mmClass.getDeclaredFields()) {
                 int mod = f.getModifiers();
                 if (!Modifier.isStatic(mod)) continue;
@@ -221,13 +213,12 @@ public final class ModuleInjector {
 
     private static Object instantiate(Class<?> cls) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
         String name = cls.getName();
-        if (SEEN_CLASSES.contains(name)) return null; // already constructed once
+        if (SEEN_CLASSES.contains(name)) return null;
         try {
             Object inst;
             try {
                 inst = cls.getDeclaredConstructor().newInstance();
             } catch (NoSuchMethodException e) {
-                // try no-arg public constructor via getConstructor
                 inst = cls.getConstructor().newInstance();
             }
             SEEN_CLASSES.add(name);
@@ -261,7 +252,6 @@ public final class ModuleInjector {
                 Class<?> param = m.getParameterTypes()[0];
                 if (!param.isAssignableFrom(moduleBase)) continue;
                 m.setAccessible(true);
-                // Prefer method names with module semantics
                 if (best == null) {
                     best = m;
                 } else {
@@ -296,7 +286,6 @@ public final class ModuleInjector {
                 candidates.add(f);
             }
         }
-        // Prefer fields hinting at modules in their name
         candidates.sort(Comparator.comparingInt(f -> nameScore(f.getName().toLowerCase(Locale.ROOT))));
         if (candidates.isEmpty()) {
             log("No List/Collection field found on ModuleManager");
@@ -311,7 +300,6 @@ public final class ModuleInjector {
                 if (!(val instanceof List)) continue;
                 @SuppressWarnings("unchecked")
                 List<Object> list = (List<Object>) val;
-                // Validate list contents when possible
                 boolean looksRight = list.isEmpty() || list.stream().filter(Objects::nonNull).anyMatch(moduleBase::isInstance);
                 if (!looksRight) continue;
 
@@ -335,7 +323,7 @@ public final class ModuleInjector {
         if (n.contains("module")) s += 4;
         if (n.contains("list")) s += 2;
         if (n.contains("mods")) s += 1;
-        return -s; // for ascending sort in comparator above
+        return -s;
     }
 
     private static boolean containsClass(List<Object> list, Class<?> cls) {
@@ -457,7 +445,6 @@ public final class ModuleInjector {
                 modules = findModuleList(mm, moduleBase);
             }
             if (modules == null) {
-                // Try static fallback
                 try {
                     Class<?> mmClass = Class.forName("wtf.tatp.meowtils.gui.ModuleManager");
                     modules = findStaticModuleList(mmClass, moduleBase);
@@ -607,7 +594,6 @@ public final class ModuleInjector {
         try {
             System.out.println("[MeowtilsAddons] " + String.format(Locale.ROOT, fmt, args));
         } catch (Throwable ignored) {
-            // last resort
         }
     }
 }

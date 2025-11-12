@@ -3,16 +3,17 @@
   "refmap": "mixins.injectors.refmap.json",
   "minVersion": "0.7",
   "compatibilityLevel": "JAVA_8",
-  "__comment": "You do not need to manually register mixins in this template. Check the auto discovery mixin plugin for more info.",
   "mixins": [
     "meowtils.MixinModuleManager",
     "meowtils.MixinCfg",
     "meowtils.MixinModuleCategory",
     "meowtils.MixinModuleModules",
     "meowtils.MixinFrame",
+    "meowtils.MixinMeowtilsCommand",
     "minecraft.AccessorPlayerControllerMP",
+    "minecraft.MixinGuiIngameScoreboard",
     "minecraft.MixinGuiIngameForgeScoreboard",
-    "minecraft.MixinGuiIngameScoreboard"
+    "minecraft.IAccessorPlayerControllerMP"
   ],
   "client": [
   ],

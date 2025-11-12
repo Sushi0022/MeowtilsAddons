@@ -4,9 +4,6 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.Loader;
 
-/**
- * Safety net: after client starts, ensure our test module is present in ModuleManager.
- */
 public final class ModuleBootstrap {
     private boolean done;
 
@@ -16,9 +13,7 @@ public final class ModuleBootstrap {
         if (e.phase != TickEvent.Phase.END) return;
         try {
             if (!Loader.isModLoaded("meowtils")) return;
-            // Try static injector
             ModuleInjector.injectStatic(Class.forName("wtf.tatp.meowtils.gui.ModuleManager"));
-            // Also direct-append safeguard
             tryAppendAutoFish();
             done = true;
         } catch (Throwable ignored) { }

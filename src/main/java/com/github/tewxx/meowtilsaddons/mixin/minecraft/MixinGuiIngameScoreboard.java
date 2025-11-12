@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiIngame;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.scoreboard.Score;
 import net.minecraft.scoreboard.ScoreObjective;
 import net.minecraft.scoreboard.ScorePlayerTeam;
@@ -40,7 +41,7 @@ public abstract class MixinGuiIngameScoreboard {
                 Team team = sb.getPlayersTeam(s.getPlayerName());
                 String line = ScorePlayerTeam.formatPlayerName(team, s.getPlayerName());
                 String bare = strip(line);
-                if (cfgBool("levelFaker", false) && bare != null && bare.trim().toLowerCase(java.util.Locale.ROOT).startsWith("level:")) {
+                if (cfgBool("levelFaker", false) && cfgBool("bedwarsScoreboardEnabledBool", true) && isBedWars(objective) && bare != null && bare.trim().toLowerCase(java.util.Locale.ROOT).startsWith("level:")) {
                     String tag = buildStarTag(cfgInt("bedwarsLevel", 1));
                     if (tag != null) line = "§fLevel: " + removeBrackets(tag);
                     System.out.println("[Mixin] (GuiIngame) Replaced Level line to -> " + line);
@@ -48,35 +49,37 @@ public abstract class MixinGuiIngameScoreboard {
                 lines.add(line);
                 width = Math.max(width, fr.getStringWidth(line));
             }
-            // Center vertically using bottom-up layout like CustomSidebar
             int sidebarWidth = width;
             int sidebarHeight = lines.size() * fr.FONT_HEIGHT;
             int sidebarX = sr.getScaledWidth() - sidebarWidth - 3; // keep right side
             int sidebarY = (sr.getScaledHeight() + sidebarHeight) / 2; // center baseline
             System.out.println("[Mixin] GuiIngame center: screenH=" + sr.getScaledHeight() + ", sidebarH=" + sidebarHeight + ", sidebarY=" + sidebarY);
 
-            int bg = 0x4F000000; // semi-transparent black
-            int rightX = sidebarX + sidebarWidth + 2;
+            GlStateManager.pushMatrix();
+            try {
+                int bg = 0x4F000000; // semi-transparent black
+                int rightX = sidebarX + sidebarWidth + 2;
 
-            // Draw lines bottom-up from center baseline
-            int index = 0;
-            int lastScoreY = sidebarY;
-            for (int i = 0; i < lines.size(); i++) {
-                index++;
-                String line = lines.get(i); // normal order, compute bottom-up positions
-                int y = sidebarY - index * fr.FONT_HEIGHT;
-                lastScoreY = y;
-                net.minecraft.client.gui.Gui.drawRect(sidebarX - 2, y, rightX, y + fr.FONT_HEIGHT, bg);
-                fr.drawStringWithShadow(line, (float) sidebarX, (float) y, 0xFFFFFF);
+                int index = 0;
+                int lastScoreY = sidebarY;
+                for (int i = 0; i < lines.size(); i++) {
+                    index++;
+                    String line = lines.get(i);
+                    int y = sidebarY - index * fr.FONT_HEIGHT;
+                    lastScoreY = y;
+                    net.minecraft.client.gui.Gui.drawRect(sidebarX - 2, y, rightX, y + fr.FONT_HEIGHT, bg);
+                    fr.drawStringWithShadow(line, (float) sidebarX, (float) y, 0xFFFFFF);
+                }
+
+                int headerTop = lastScoreY - fr.FONT_HEIGHT - 1;
+                int headerBottom = lastScoreY - 1;
+                net.minecraft.client.gui.Gui.drawRect(sidebarX - 2, headerTop, rightX, headerBottom, bg);
+                net.minecraft.client.gui.Gui.drawRect(sidebarX - 2, headerBottom, rightX, headerBottom + 1, bg);
+                String title = objective.getDisplayName();
+                fr.drawStringWithShadow(title, (float)(sidebarX + (sidebarWidth - fr.getStringWidth(title)) / 2), (float) (headerTop), 0xFFFFFF);
+            } finally {
+                GlStateManager.popMatrix();
             }
-
-            // Header above the top line
-            int headerTop = lastScoreY - fr.FONT_HEIGHT - 1;
-            int headerBottom = lastScoreY - 1;
-            net.minecraft.client.gui.Gui.drawRect(sidebarX - 2, headerTop, rightX, headerBottom, bg);
-            net.minecraft.client.gui.Gui.drawRect(sidebarX - 2, headerBottom, rightX, headerBottom + 1, bg);
-            String title = objective.getDisplayName();
-            fr.drawStringWithShadow(title, (float)(sidebarX + (sidebarWidth - fr.getStringWidth(title)) / 2), (float) (headerTop), 0xFFFFFF);
             ci.cancel();
         } catch (Throwable ignored) {}
     }
@@ -90,6 +93,14 @@ public abstract class MixinGuiIngameScoreboard {
             out.append(c);
         }
         return out.toString();
+    }
+
+    private static boolean isBedWars(ScoreObjective objective) {
+        if (objective == null) return false;
+        String title = strip(objective.getDisplayName());
+        if (title == null) return false;
+        String t = title.trim().toLowerCase(java.util.Locale.ROOT);
+        return t.contains("bed wars") || t.contains("bedwars");
     }
 
     private static int cfgInt(String field, int def) {
@@ -112,7 +123,6 @@ public abstract class MixinGuiIngameScoreboard {
         } catch (Throwable t) { return def; }
     }
 
-    // Reuse LevelFaker's tag builder via resource
     private static final java.util.TreeMap<Integer, String> MT_TEMPLATES = new java.util.TreeMap<>();
     private static boolean MT_LOADED = false;
     private static void ensureTemplates() {
@@ -166,11 +176,10 @@ public abstract class MixinGuiIngameScoreboard {
 
     private static String removeBrackets(String s) {
         if (s == null) return null;
-        // Remove ASCII and fullwidth brackets anywhere in the string
         return s
                 .replace("[", "")
                 .replace("]", "")
-                .replace("［", "") // U+FF3B fullwidth [
-                .replace("］", ""); // U+FF3D fullwidth ]
+                .replace("［", "")
+                .replace("］", "");
     }
 }

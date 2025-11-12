@@ -7,10 +7,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Adds a new enum constant 'Rejects' to wtf.tatp.meowtils.gui.Module$Category at runtime.
- * This relies on Forge's EnumHelper (works on Java 8 / 1.8.9).
- */
 @Pseudo
 @Mixin(targets = "wtf.tatp.meowtils.gui.Module$Category", remap = false)
 public abstract class MixinModuleCategory {
@@ -19,7 +15,6 @@ public abstract class MixinModuleCategory {
     private static void meowtilsaddons$addRejects(CallbackInfo ci) {
         try {
             Class<?> enumCls = Class.forName("wtf.tatp.meowtils.gui.Module$Category");
-            // Skip if already present
             try {
                 java.lang.Enum.valueOf((Class) enumCls, "Rejects");
                 return;

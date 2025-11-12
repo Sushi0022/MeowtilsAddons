@@ -9,7 +9,6 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Pseudo
 @Mixin(value = EntityFishHook.class, remap = false)
 public interface AccessorEntityFishHook {
-    // MCP named fields in 1.8.9 deobf environment
     @Accessor("ticksCatchable")
     int getTicksCatchable();
 

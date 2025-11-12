@@ -9,9 +9,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import wtf.tatp.meowtils.gui.Module;
 import wtf.tatp.meowtils.config.cfg;
 
-/**
- * Adds config persistence for the dynamically-injected Category.Rejects in Frame.loadFromConfig/saveToConfig.
- */
 @Pseudo
 @Mixin(targets = "wtf.tatp.meowtils.gui.component.Frame", remap = false)
 public abstract class MixinFrame {
@@ -34,7 +31,6 @@ public abstract class MixinFrame {
                     this.open = fe.getBoolean(cfg.v);
                     ci.cancel();
                 } catch (Throwable reflectMissing) {
-                    // Fields not present; fall through to original switch/default handling
                 }
             }
         } catch (Throwable ignored) { }
@@ -54,7 +50,6 @@ public abstract class MixinFrame {
                     cfg.save();
                     ci.cancel();
                 } catch (Throwable reflectMissing) {
-                    // Fields not present; allow original code to handle persistence (default path)
                 }
             }
         } catch (Throwable ignored) { }

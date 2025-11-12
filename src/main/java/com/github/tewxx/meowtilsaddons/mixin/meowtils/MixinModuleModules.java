@@ -7,10 +7,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Adds a new enum constant 'Test' to wtf.tatp.meowtils.gui.Module$Modules at runtime.
- * This mirrors manually editing the enum to append ", Test;" and works on Java 8 via Forge EnumHelper.
- */
 @Pseudo
 @Mixin(targets = "wtf.tatp.meowtils.gui.Module$Modules", remap = false)
 public abstract class MixinModuleModules {
@@ -19,7 +15,6 @@ public abstract class MixinModuleModules {
     private static void meowtilsaddons$addTest(CallbackInfo ci) {
         try {
             Class<?> enumCls = Class.forName("wtf.tatp.meowtils.gui.Module$Modules");
-            // Skip if already present
             try {
                 java.lang.Enum.valueOf((Class) enumCls, "Test");
                 return;

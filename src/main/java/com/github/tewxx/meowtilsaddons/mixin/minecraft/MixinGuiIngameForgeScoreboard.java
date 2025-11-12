@@ -23,93 +23,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.TreeMap;
 
-@Mixin(value = GuiIngameForge.class, remap = false)
+@Mixin(value = GuiIngameForge.class)
 public abstract class MixinGuiIngameForgeScoreboard {
     private static final TreeMap<Integer, String> MT_TEMPLATES = new TreeMap<>();
     private static boolean MT_LOADED = false;
-
-    @Redirect(remap = false,
-        method = "renderScoreboard(Lnet/minecraft/scoreboard/ScoreObjective;Lnet/minecraft/client/gui/ScaledResolution;)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/gui/FontRenderer;drawStringWithShadow(Ljava/lang/String;FFI)I"
-        )
-    )
-    private int meowtilsaddons$replaceScoreboardLineForge(FontRenderer fr, String text, float x, float y, int color, ScoreObjective obj, ScaledResolution sr) {
-        try {
-            if (cfgBool("levelFaker", false)) {
-                String bare = strip(text);
-                if (bare != null) {
-                    String lc = bare.trim().toLowerCase(java.util.Locale.ROOT);
-                    if (lc.startsWith("level:")) {
-                        String tag = buildStarTag(cfgInt("bedwarsLevel", 1));
-                        if (tag != null) {
-                            String replaced = "§fLevel: " + removeBrackets(tag);
-                            System.out.println("[Mixin] Replacing scoreboard line -> " + replaced);
-                            text = replaced;
-                        }
-                    }
-                }
-            }
-        } catch (Throwable ignored) {}
-        return fr.drawStringWithShadow(text, x, y, color);
-    }
-
-    @Redirect(remap = false,
-        method = "renderScoreboard(Lnet/minecraft/scoreboard/ScoreObjective;Lnet/minecraft/client/gui/ScaledResolution;)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/gui/FontRenderer;drawString(Ljava/lang/String;III)I"
-        )
-    )
-    private int meowtilsaddons$replaceScoreboardLineForgeNoShadow(FontRenderer fr, String text, int x, int y, int color, ScoreObjective obj, ScaledResolution sr) {
-        try {
-            if (cfgBool("levelFaker", false)) {
-                String bare = strip(text);
-                if (bare != null) {
-                    String lc = bare.trim().toLowerCase(java.util.Locale.ROOT);
-                    if (lc.startsWith("level:")) {
-                        String tag = buildStarTag(cfgInt("bedwarsLevel", 1));
-                        if (tag != null) {
-                            String replaced = "§fLevel: " + removeBrackets(tag);
-                            System.out.println("[Mixin] Replacing scoreboard line (Forge no-shadow) -> " + replaced);
-                            text = replaced;
-                        }
-                    }
-                }
-            }
-        } catch (Throwable ignored) {}
-        return fr.drawString(text, x, y, color);
-    }
-
-    // Replace the formatted line at the source where Forge builds strings: ScorePlayerTeam.formatPlayerName
-    @Redirect(remap = false,
-        method = "renderScoreboard(Lnet/minecraft/scoreboard/ScoreObjective;Lnet/minecraft/client/gui/ScaledResolution;)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/scoreboard/ScorePlayerTeam;formatPlayerName(Lnet/minecraft/scoreboard/Team;Ljava/lang/String;)Ljava/lang/String;"
-        )
-    )
-    private String meowtilsaddons$formatPlayerNameReplace(Team team, String name) {
-        String out = ScorePlayerTeam.formatPlayerName(team, name);
-        try {
-            if (cfgBool("levelFaker", false)) {
-                String bare = strip(out);
-                if (bare != null) {
-                    String lc = bare.trim().toLowerCase(java.util.Locale.ROOT);
-                    if (lc.startsWith("level:")) {
-                        String tag = buildStarTag(cfgInt("bedwarsLevel", 1));
-                        if (tag != null) {
-                            String rep = "§fLevel: " + removeBrackets(tag);
-                            System.out.println("[Mixin] Replacing scoreboard line (formatPlayerName) -> " + rep);
-                            return rep;
-                        }
-                    }
-                }
-            }
-        } catch (Throwable ignored) {}
-        return out;
-    }
 
     private static String strip(String s) {
         if (s == null) return null;
@@ -120,6 +37,14 @@ public abstract class MixinGuiIngameForgeScoreboard {
             out.append(c);
         }
         return out.toString();
+    }
+
+    private static boolean isBedWars(ScoreObjective objective) {
+        if (objective == null) return false;
+        String title = strip(objective.getDisplayName());
+        if (title == null) return false;
+        String t = title.trim().toLowerCase(java.util.Locale.ROOT);
+        return t.contains("bed wars") || t.contains("bedwars");
     }
 
     private static void ensureTemplates() {
@@ -237,62 +162,15 @@ public abstract class MixinGuiIngameForgeScoreboard {
 
     private static String removeBrackets(String s) {
         if (s == null) return null;
-        // Remove any bracket characters regardless of where they appear
         return s.replace("[", "").replace("]", "");
     }
 
-    // Primary path: inject at start of Forge's renderScoreboard and cancel, drawing our own with the Level line replaced
-    @Inject(method = "renderScoreboard(Lnet/minecraft/scoreboard/ScoreObjective;Lnet/minecraft/client/gui/ScaledResolution;)V", at = @At("HEAD"), cancellable = true, remap = false)
+    @Inject(method = "renderScoreboard(Lnet/minecraft/scoreboard/ScoreObjective;Lnet/minecraft/client/gui/ScaledResolution;)V", at = @At("HEAD"), cancellable = true)
     private void meowtilsaddons$injectRenderScoreboard(ScoreObjective objective, ScaledResolution sr, CallbackInfo ci) {
         try {
             if (objective == null) return;
-            System.out.println("[Mixin] renderScoreboard inject fired. Objective='" + objective.getDisplayName() + "'");
-            Minecraft mc = Minecraft.getMinecraft();
-            FontRenderer fr = mc.fontRendererObj;
-            Scoreboard sb = objective.getScoreboard();
-            java.util.List<Score> scores = new java.util.ArrayList<>();
-            for (Score s : sb.getSortedScores(objective)) {
-                String name = s.getPlayerName();
-                if (name != null && !name.startsWith("#") && scores.size() < 15) scores.add(s);
-            }
-            int width = fr.getStringWidth(objective.getDisplayName());
-            java.util.List<String> lines = new java.util.ArrayList<>();
-            for (Score s : scores) {
-                Team team = sb.getPlayersTeam(s.getPlayerName());
-                String line = ScorePlayerTeam.formatPlayerName(team, s.getPlayerName());
-                String bare = strip(line);
-                if (cfgBool("levelFaker", false) && bare != null && bare.trim().toLowerCase(java.util.Locale.ROOT).startsWith("level:")) {
-                    String tag = buildStarTag(cfgInt("bedwarsLevel", 1));
-                    if (tag != null) line = "§fLevel: " + tag;
-                    System.out.println("[Mixin] Replaced Level line to -> " + line);
-                }
-                lines.add(line);
-                width = Math.max(width, fr.getStringWidth(line));
-            }
-            int startX = sr.getScaledWidth() - width - 3;
-            int y = 3;
-            fr.drawStringWithShadow(objective.getDisplayName(), (float)(startX + width / 2 - fr.getStringWidth(objective.getDisplayName()) / 2), (float) y, 0xFFFFFF);
-            for (int i = 0; i < lines.size(); i++) {
-                String line = lines.get(lines.size() - 1 - i);
-                int yy = y + (i + 1) * fr.FONT_HEIGHT;
-                fr.drawStringWithShadow(line, (float) startX, (float) yy, 0xFFFFFF);
-            }
-            // cancel vanilla rendering
-            ci.cancel();
-        } catch (Throwable ignored) {}
-    }
-
-    // Intercept vanilla call site and draw the sidebar ourselves (with Level line replaced)
-    @Redirect(
-        method = "renderGameOverlay(F)V",
-        at = @At(
-            value = "INVOKEVIRTUAL",
-            target = "Lnet/minecraftforge/client/GuiIngameForge;renderScoreboard(Lnet/minecraft/scoreboard/ScoreObjective;Lnet/minecraft/client/gui/ScaledResolution;)V"
-        )
-    )
-    private void meowtilsaddons$renderScoreboardReplaced(GuiIngameForge self, ScoreObjective objective, ScaledResolution sr, float partialTicks) {
-        try {
-            if (objective == null) return;
+            if (!isBedWars(objective)) return;
+            if (!cfgBool("bedwarsScoreboardEnabledBool", true)) return;
             Minecraft mc = Minecraft.getMinecraft();
             FontRenderer fr = mc.fontRendererObj;
             Scoreboard sb = objective.getScoreboard();
@@ -314,32 +192,27 @@ public abstract class MixinGuiIngameForgeScoreboard {
                 lines.add(line);
                 width = Math.max(width, fr.getStringWidth(line));
             }
-            // Compute centered Y using total block height: header (FONT_HEIGHT) + 1px separator + lines*FONT_HEIGHT
             int sidebarWidth = width;
             int linesHeight = lines.size() * fr.FONT_HEIGHT;
             int totalHeight = fr.FONT_HEIGHT + 1 + linesHeight;
-            int sidebarX = sr.getScaledWidth() - sidebarWidth - 3; // keep top-right X
-            int topY = (sr.getScaledHeight() - totalHeight) / 2;   // center the whole block on Y
-
-            int bg = 0x4F000000; // ~79 alpha black for boxes
+            int sidebarX = sr.getScaledWidth() - sidebarWidth - 3;
+            int topY = (sr.getScaledHeight() - totalHeight) / 2;
+            int bg = 0x4F000000;
             int rightX = sidebarX + sidebarWidth + 2;
-
-            // Header background and title
             int headerTop = topY;
             int headerBottom = topY + fr.FONT_HEIGHT;
             net.minecraft.client.gui.Gui.drawRect(sidebarX - 2, headerTop, rightX, headerBottom, bg);
-            net.minecraft.client.gui.Gui.drawRect(sidebarX - 2, headerBottom, rightX, headerBottom + 1, bg); // separator
+            net.minecraft.client.gui.Gui.drawRect(sidebarX - 2, headerBottom, rightX, headerBottom + 1, bg);
             String title = objective.getDisplayName();
             fr.drawStringWithShadow(title, (float)(sidebarX + (sidebarWidth - fr.getStringWidth(title)) / 2), (float) (headerTop), 0xFFFFFF);
-
-            // Lines backgrounds and text, drawn top-to-bottom after header
             int lineStartY = headerBottom + 1;
             for (int i = 0; i < lines.size(); i++) {
-                String line = lines.get(lines.size() - 1 - i); // bottom-up order rendered downward
+                String line = lines.get(lines.size() - 1 - i);
                 int y = lineStartY + i * fr.FONT_HEIGHT;
                 net.minecraft.client.gui.Gui.drawRect(sidebarX - 2, y, rightX, y + fr.FONT_HEIGHT, bg);
                 fr.drawStringWithShadow(line, (float) sidebarX, (float) y, 0xFFFFFF);
             }
+            ci.cancel();
         } catch (Throwable t) { /* swallow */ }
     }
 }
