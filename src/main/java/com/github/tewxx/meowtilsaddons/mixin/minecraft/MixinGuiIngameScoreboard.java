@@ -14,7 +14,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import wtf.tatp.meowtils.config.cfg;
-import wtf.tatp.meowtils.modules.advanced.LevelFaker;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,16 +36,9 @@ public abstract class MixinGuiIngameScoreboard {
             }
             int width = fr.getStringWidth(objective.getDisplayName());
             List<String> lines = new ArrayList<>();
-            boolean foundYOU = false;
             for (Score s : scores) {
                 Team team = sb.getPlayersTeam(s.getPlayerName());
                 String line = ScorePlayerTeam.formatPlayerName(team, s.getPlayerName());
-                if (!foundYOU && line != null) {
-                    String bareLine = strip(line);
-                    if (bareLine != null && bareLine.toUpperCase(java.util.Locale.ROOT).contains("YOU")) {
-                        foundYOU = true;
-                    }
-                }
                 String bare = strip(line);
                 if (cfgBool("levelFaker", false) && bare != null && bare.trim().toLowerCase(java.util.Locale.ROOT).startsWith("level:")) {
                     String tag = buildStarTag(cfgInt("bedwarsLevel", 1));
@@ -56,8 +48,6 @@ public abstract class MixinGuiIngameScoreboard {
                 lines.add(line);
                 width = Math.max(width, fr.getStringWidth(line));
             }
-            // Update in-game flag based on presence of 'YOU'. XP is handled in LevelFaker tick using compass detection.
-            LevelFaker.IN_BEDWARS = foundYOU;
             // Center vertically using bottom-up layout like CustomSidebar
             int sidebarWidth = width;
             int sidebarHeight = lines.size() * fr.FONT_HEIGHT;
@@ -178,9 +168,9 @@ public abstract class MixinGuiIngameScoreboard {
         if (s == null) return null;
         // Remove ASCII and fullwidth brackets anywhere in the string
         return s
-            .replace("[", "")
-            .replace("]", "")
-            .replace("［", "") // U+FF3B fullwidth [
-            .replace("］", ""); // U+FF3D fullwidth ]
+                .replace("[", "")
+                .replace("]", "")
+                .replace("［", "") // U+FF3B fullwidth [
+                .replace("］", ""); // U+FF3D fullwidth ]
     }
 }
