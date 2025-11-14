@@ -182,8 +182,13 @@ public class MixinModuleManager {
                         String line;
                         while ((line = br.readLine()) != null) {
                             String s = line.trim();
-                            if (s.isEmpty() || s.startsWith("#")) continue;
-                            rejectNames.add(s.toLowerCase(java.util.Locale.ROOT));
+                            if (s.isEmpty() || s.startsWith("#") || s.startsWith("//")) continue;
+                            String[] partsRN = s.split("\\|", 2);
+                            String classNameRN = partsRN[0].trim();
+                            String simpleRN = classNameRN;
+                            int idx = simpleRN.lastIndexOf('.');
+                            if (idx >= 0 && idx < simpleRN.length() - 1) simpleRN = simpleRN.substring(idx + 1);
+                            rejectNames.add(simpleRN.toLowerCase(java.util.Locale.ROOT));
                         }
                         br.close();
                     }

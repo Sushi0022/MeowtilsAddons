@@ -4,9 +4,9 @@
   "minVersion": "0.7",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "meowtils.MixinModuleCategory",
     "meowtils.MixinModuleManager",
     "meowtils.MixinCfg",
-    "meowtils.MixinModuleCategory",
     "meowtils.MixinModuleModules",
     "meowtils.MixinFrame",
     "meowtils.MixinMeowtilsCommand",
