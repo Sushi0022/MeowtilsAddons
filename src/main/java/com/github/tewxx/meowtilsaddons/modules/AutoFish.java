@@ -61,7 +61,7 @@ public class AutoFish extends Module {
         if (hook == null || hook.isDead) {
             if ((tick - lastReelTick) < 14) return;
             useRod();
-            nextActionTick = tick + 12; // small delay before next check/action
+            nextActionTick = tick + 12;
             prevHookY = Double.NaN;
             biteWindowTicks = 0;
             hookAgeTicks = 0;
@@ -85,14 +85,14 @@ public class AutoFish extends Module {
             prevDy = 0.0;
             return;
         } else {
-            double dy = y - prevHookY; // per tick delta
+            double dy = y - prevHookY; 
             boolean inWater = hook.isInWater();
             if (inWater && hookAgeTicks > 15 && !didReelThisCast && !wasHooked) {
-                try { dy = hook.motionY; } catch (Throwable t2) { /* keep computed dy */ }
+                try { dy = hook.motionY; } catch (Throwable t2) {  }
                 boolean spike = (prevDy > -0.005) && (dy < -0.12);
                 if (spike) {
                     wasHooked = true;
-                    catchDelayTicks = 4; // short delay before reel
+                    catchDelayTicks = 4;
                     noBiteTimeout = 0;
                 }
                 prevDy = dy;
@@ -100,7 +100,7 @@ public class AutoFish extends Module {
         }
         prevHookY = y;
 
-        if (biteWindowTicks > 0) biteWindowTicks--; // maintained for debugging; not used to reel directly
+        if (biteWindowTicks > 0) biteWindowTicks--; 
 
         if (wasHooked) {
             if (catchDelayTicks > 0) {
@@ -139,7 +139,7 @@ public class AutoFish extends Module {
 
             if (debugAllSounds && distSq <= 256.0) {
                 if (chatCountTick != tick) { chatCountTick = tick; chatCount = 0; }
-                if (chatCount < 4) { // cap 4 lines per tick
+                if (chatCount < 4) { 
                     try { this.mc.thePlayer.addChatMessage(new ChatComponentText("§7[§9AutoFish§7] §8sound=§f" + name + " §8d2=§f" + String.format(java.util.Locale.ROOT, "%.2f", distSq))); } catch (Throwable ignored) {}
                     chatCount++;
                 }
