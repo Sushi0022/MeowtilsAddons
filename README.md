@@ -1,4 +1,6 @@
 # Meowtils Rejects
+> **Prerequisites:** This project requires both **Meowtils** and **MeowtilsRejects** to function properly, as MeowtilsRejects hooks into Meowtils.
+> **Download Meowtils:** https://discord.com/invite/TpATF7AVdT
 
 ## How to Add Modules
 
