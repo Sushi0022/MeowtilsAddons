@@ -14,6 +14,7 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
+import net.minecraftforge.client.event.FOVUpdateEvent;
 import net.minecraftforge.client.event.MouseEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
@@ -27,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import net.minecraft.nbt.NBTTagCompound;
 
 /**
  * Freecam with block-face teleportation and phasing utilities via hotbar items.
@@ -69,6 +71,7 @@ public class Freecam extends Module {
 
     private static Field flySpeedField;
     private static Field walkSpeedField;
+    private static Field remainingHighlightField;
 
     public Freecam() {
         super("Freecam", "freecamKey", "freecam", Module.Category.Advanced);
@@ -161,6 +164,8 @@ public class Freecam extends Module {
         }
         lastHurtTime = player.hurtTime;
 
+        // Re-assert control items in the first 4 slots if server/client inventory updates overwrite them
+        ensureControlItems();
         updatePreview();
     }
 
@@ -186,6 +191,22 @@ public class Freecam extends Module {
     }
 
     @SubscribeEvent
+    public void onOverlayPre(RenderGameOverlayEvent.Pre event) {
+        if (!this.getState()) return;
+        if (event.type != RenderGameOverlayEvent.ElementType.HOTBAR) return;
+        if (this.mc == null || this.mc.thePlayer == null || this.mc.ingameGUI == null) return;
+        ItemStack held = this.mc.thePlayer.getHeldItem();
+        if (held == null || !isControlItem(held)) return;
+        try {
+            if (remainingHighlightField == null) {
+                remainingHighlightField = net.minecraft.client.gui.GuiIngame.class.getDeclaredField("remainingHighlightTicks");
+                remainingHighlightField.setAccessible(true);
+            }
+            remainingHighlightField.setInt(this.mc.ingameGUI, 0);
+        } catch (Throwable ignored) {}
+    }
+
+    @SubscribeEvent
     public void onRenderHotbarName(RenderGameOverlayEvent.Post event) {
         if (!this.getState()) return;
         if (event.type != RenderGameOverlayEvent.ElementType.HOTBAR) return;
@@ -200,6 +221,12 @@ public class Freecam extends Module {
         GlStateManager.pushMatrix();
         this.mc.fontRendererObj.drawStringWithShadow(name, x, y, 0xFFFFFF);
         GlStateManager.popMatrix();
+    }
+
+    @SubscribeEvent
+    public void onFovUpdate(FOVUpdateEvent event) {
+        if (!this.getState()) return;
+        event.newfov = 1.0F;
     }
 
     @SubscribeEvent
@@ -293,9 +320,27 @@ public class Freecam extends Module {
         this.mc.thePlayer.inventory.currentItem = 0;
     }
 
+    private void ensureControlItems() {
+        if (this.mc == null || this.mc.thePlayer == null) return;
+        ItemStack[] inv = this.mc.thePlayer.inventory.mainInventory;
+        boolean changed = false;
+        // Slot 0: speed
+        if (!hasToolMarker(inv[0], "speed")) { inv[0] = this.speedItem = createItem(Items.sugar, currentSpeedName()); changed = true; }
+        else { renameItem(inv[0], currentSpeedName()); }
+        // Slot 1: teleport
+        if (!hasToolMarker(inv[1], "teleport")) { inv[1] = this.teleportItem = createItem(Items.blaze_rod, "&6Teleport Stick"); changed = true; }
+        // Slot 2: phase
+        if (!hasToolMarker(inv[2], "phase")) { inv[2] = this.phaseItem = createItem(Items.shears, "&dPhasing Tool"); changed = true; }
+        // Slot 3: compass
+        if (!hasToolMarker(inv[3], "compass")) { inv[3] = this.compassItem = createItem(Items.compass, "&fPlayer: &7None"); changed = true; }
+        if (changed) this.mc.thePlayer.inventory.markDirty();
+    }
+
     private ItemStack createItem(Item item, String displayName) {
         ItemStack stack = new ItemStack(item);
         renameItem(stack, displayName);
+        // Tag as Freecam control tool so detection survives inventory updates
+        setToolMarker(stack, toolIdForItem(item));
         return stack;
     }
 
@@ -304,12 +349,40 @@ public class Freecam extends Module {
         stack.setStackDisplayName(EnumChatFormatting.RESET + text.replace('&', '\u00A7'));
     }
 
-    private boolean isSpeedSugar(ItemStack stack) { return stack != null && stack == this.speedItem; }
-    private boolean isTeleportStick(ItemStack stack) { return stack != null && stack == this.teleportItem; }
-    private boolean isPhaseTool(ItemStack stack) { return stack != null && stack == this.phaseItem; }
-    private boolean isCompass(ItemStack stack) { return stack != null && stack == this.compassItem; }
+    private boolean isSpeedSugar(ItemStack stack) { return hasToolMarker(stack, "speed"); }
+    private boolean isTeleportStick(ItemStack stack) { return hasToolMarker(stack, "teleport"); }
+    private boolean isPhaseTool(ItemStack stack) { return hasToolMarker(stack, "phase"); }
+    private boolean isCompass(ItemStack stack) { return hasToolMarker(stack, "compass"); }
     private boolean isControlItem(ItemStack stack) {
         return stack != null && (isSpeedSugar(stack) || isTeleportStick(stack) || isPhaseTool(stack) || isCompass(stack));
+    }
+
+    private static final String TOOL_TAG = "MeowAddonsFreecamTool";
+    private static void setToolMarker(ItemStack stack, String id) {
+        try {
+            if (stack == null || id == null) return;
+            NBTTagCompound tag = stack.getTagCompound();
+            if (tag == null) tag = new NBTTagCompound();
+            tag.setString(TOOL_TAG, id);
+            stack.setTagCompound(tag);
+        } catch (Throwable ignored) {}
+    }
+    private static boolean hasToolMarker(ItemStack stack, String id) {
+        try {
+            if (stack == null) return false;
+            NBTTagCompound tag = stack.getTagCompound();
+            if (tag == null) return false;
+            String v = tag.getString(TOOL_TAG);
+            if (v == null) return false;
+            return v.equals(id);
+        } catch (Throwable ignored) { return false; }
+    }
+    private static String toolIdForItem(Item item) {
+        if (item == Items.sugar) return "speed";
+        if (item == Items.blaze_rod) return "teleport";
+        if (item == Items.shears) return "phase";
+        if (item == Items.compass) return "compass";
+        return "unknown";
     }
 
     private void cycleSpeed() {
