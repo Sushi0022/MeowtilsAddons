@@ -31,6 +31,9 @@ public class MixinCfg {
     public boolean bedwarsChatEnabledBool = true;
     public boolean bedwarsXpEnabledBool = true;
 
+    public boolean freecam = false;
+    public int freecamKey = 0;
+
     public int rejectsCategoryX = 5;
     public int rejectsCategoryY = 125;
     public boolean rejectsCategoryExpanded = false;
