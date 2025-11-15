@@ -14,6 +14,7 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
+import net.minecraftforge.client.event.FOVUpdateEvent;
 import net.minecraftforge.client.event.MouseEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
@@ -69,6 +70,7 @@ public class Freecam extends Module {
 
     private static Field flySpeedField;
     private static Field walkSpeedField;
+    private static Field remainingHighlightField;
 
     public Freecam() {
         super("Freecam", "freecamKey", "freecam", Module.Category.Advanced);
@@ -186,6 +188,22 @@ public class Freecam extends Module {
     }
 
     @SubscribeEvent
+    public void onOverlayPre(RenderGameOverlayEvent.Pre event) {
+        if (!this.getState()) return;
+        if (event.type != RenderGameOverlayEvent.ElementType.HOTBAR) return;
+        if (this.mc == null || this.mc.thePlayer == null || this.mc.ingameGUI == null) return;
+        ItemStack held = this.mc.thePlayer.getHeldItem();
+        if (held == null || !isControlItem(held)) return;
+        try {
+            if (remainingHighlightField == null) {
+                remainingHighlightField = net.minecraft.client.gui.GuiIngame.class.getDeclaredField("remainingHighlightTicks");
+                remainingHighlightField.setAccessible(true);
+            }
+            remainingHighlightField.setInt(this.mc.ingameGUI, 0);
+        } catch (Throwable ignored) {}
+    }
+
+    @SubscribeEvent
     public void onRenderHotbarName(RenderGameOverlayEvent.Post event) {
         if (!this.getState()) return;
         if (event.type != RenderGameOverlayEvent.ElementType.HOTBAR) return;
@@ -200,6 +218,12 @@ public class Freecam extends Module {
         GlStateManager.pushMatrix();
         this.mc.fontRendererObj.drawStringWithShadow(name, x, y, 0xFFFFFF);
         GlStateManager.popMatrix();
+    }
+
+    @SubscribeEvent
+    public void onFovUpdate(FOVUpdateEvent event) {
+        if (!this.getState()) return;
+        event.newfov = 1.0F;
     }
 
     @SubscribeEvent
