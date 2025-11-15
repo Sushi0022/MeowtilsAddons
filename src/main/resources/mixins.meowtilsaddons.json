@@ -13,7 +13,10 @@
     "minecraft.AccessorPlayerControllerMP",
     "minecraft.MixinGuiIngameScoreboard",
     "minecraft.MixinGuiIngameForgeScoreboard",
-    "minecraft.IAccessorPlayerControllerMP"
+    "minecraft.IAccessorPlayerControllerMP",
+    "minecraft.MixinEntityPlayerSP",
+    "minecraft.MixinMinecraft",
+    "minecraft.MixinNetHandlerPlayClient"
   ],
   "client": [
   ],
