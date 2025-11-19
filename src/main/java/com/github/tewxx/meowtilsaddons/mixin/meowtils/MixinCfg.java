@@ -3,14 +3,10 @@ package com.github.tewxx.meowtilsaddons.mixin.meowtils;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 
-/**
- * Adds missing config fields for our injected module so Meowtils' cfg JSON
- * persists and loads them like native modules.
- */
 @Pseudo
 @Mixin(targets = "wtf.tatp.meowtils.config.cfg", remap = false)
 public class MixinCfg {
-    // Mirror Meowtils naming convention: <feature> and <feature>Key
+
     public boolean autoFish = false;
     public int autoFishKey = 0;
 
@@ -34,7 +30,11 @@ public class MixinCfg {
     public boolean freecam = false;
     public int freecamKey = 0;
 
+    public boolean killInsults = false;
+    public int killInsultsKey = 0;
+    public String killInsultsMode = "Message";
+
     public int rejectsCategoryX = 5;
     public int rejectsCategoryY = 125;
-    public boolean rejectsCategoryExpanded = false;
+    public boolean rejectsCategoryExpanded = true;
 }

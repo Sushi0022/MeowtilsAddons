@@ -19,6 +19,8 @@ public class MixinMeowtilsCommand {
                     EnumChatFormatting.YELLOW + sep + EnumChatFormatting.DARK_GRAY + "Set Bedwars level slider");
             Meowtils.addCleanMessage(EnumChatFormatting.GREEN + "/networklevel <1-500>" +
                     EnumChatFormatting.YELLOW + sep + EnumChatFormatting.DARK_GRAY + "Set Network level slider");
+            Meowtils.addCleanMessage(EnumChatFormatting.GREEN + "/insults" +
+                    EnumChatFormatting.YELLOW + sep + EnumChatFormatting.DARK_GRAY + "Opens killinsults.txt to add your own insults");
         }
     }
 }

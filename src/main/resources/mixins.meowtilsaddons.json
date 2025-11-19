@@ -12,7 +12,6 @@
     "meowtils.MixinMeowtilsCommand",
     "minecraft.AccessorPlayerControllerMP",
     "minecraft.MixinGuiIngameScoreboard",
-    "minecraft.MixinGuiIngameForgeScoreboard",
     "minecraft.IAccessorPlayerControllerMP",
     "minecraft.MixinEntityPlayerSP",
     "minecraft.MixinMinecraft",

@@ -8,6 +8,7 @@ import net.minecraftforge.common.MinecraftForge;
 import com.github.tewxx.meowtilsaddons.inject.ModuleBootstrap;
 import com.github.tewxx.meowtilsaddons.commands.BedwarsLevelCommand;
 import com.github.tewxx.meowtilsaddons.commands.NetworkLevelCommand;
+import com.github.tewxx.meowtilsaddons.commands.InsultsCommand;
 
 @Mod(modid = "meowtilsaddons", name = "MeowtilsAddons", version = "1.0.0", clientSideOnly = true, acceptedMinecraftVersions = "[1.8.9]")
 public class MeowtilsAddonsMod {
@@ -16,6 +17,7 @@ public class MeowtilsAddonsMod {
     public void init(FMLInitializationEvent event) {
         ClientCommandHandler.instance.registerCommand(new BedwarsLevelCommand());
         ClientCommandHandler.instance.registerCommand(new NetworkLevelCommand());
+        ClientCommandHandler.instance.registerCommand(new InsultsCommand());
 
         MinecraftForge.EVENT_BUS.register(new ModuleBootstrap());
     }
