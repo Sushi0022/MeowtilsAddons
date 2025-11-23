@@ -1,4 +1,6 @@
 import org.apache.commons.lang3.SystemUtils
+import java.text.SimpleDateFormat
+import java.util.Date
 
 plugins {
     idea
@@ -17,7 +19,9 @@ val mixinGroup = "$baseGroup.mixin"
 val modid: String by project
 val transformerFile = file("src/main/resources/accesstransformer.cfg")
 
-// Toolchains:
+val dateFormat = SimpleDateFormat("yyMMdd")
+val currentDate = dateFormat.format(Date())
+
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(8))
 }
@@ -119,6 +123,9 @@ tasks.withType(JavaCompile::class) {
 
 tasks.withType(org.gradle.jvm.tasks.Jar::class) {
     archiveBaseName.set(modid)
+
+    archiveVersion.set(currentDate)
+
     manifest.attributes.run {
         this["FMLCorePluginContainsFMLMod"] = "true"
         this["ForceLoadAsMod"] = "true"

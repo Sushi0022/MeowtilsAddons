@@ -233,12 +233,30 @@ public class LevelFaker extends Module {
                     this.mc.thePlayer.experience = 0.0f;
                 }
             }
-            if (!formatted.contains(self)) return;
-
             ensureStarTemplates();
+            int colonPos = formatted.indexOf(':');
+            if (colonPos < 0) return;
             Matcher m = BRACKETED_NUMBER.matcher(formatted);
-            if (!m.find()) return;
-
+            int repStart = -1;
+            int repEnd = -1;
+            while (m.find()) {
+                int s = m.start();
+                int e = m.end();
+                if (e > colonPos) break;
+                String tail = formatted.substring(e, colonPos);
+                String tailBare = stripColors(tail);
+                if (tailBare == null) continue;
+                String upperTail = tailBare.toUpperCase(java.util.Locale.ROOT);
+                String upperSelf = self == null ? null : self.toUpperCase(java.util.Locale.ROOT);
+                String selfOrYou = (upperSelf == null ? "YOU" : "YOU|" + java.util.regex.Pattern.quote(upperSelf));
+                java.util.regex.Pattern p = java.util.regex.Pattern.compile("^\\s*(\\[[^\\]]+\\]\\s*)*(" + selfOrYou + ")\\b");
+                java.util.regex.Matcher mm = p.matcher(upperTail);
+                if (mm.find()) {
+                    repStart = s;
+                    repEnd = e;
+                    break;
+                }
+            }
             if (!getCfgBool("bedwarsChatEnabledBool", true)) return;
 
             int level = getCfgInt("bedwarsLevel", 1);
@@ -246,12 +264,56 @@ public class LevelFaker extends Module {
             String tag = buildStarTag(level);
             if (tag == null) return;
 
+            if (repStart >= 0) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(formatted, 0, repStart);
+                sb.append(tag);
+                sb.append(formatted.substring(repEnd > repStart ? repEnd : repStart));
+                event.message = new ChatComponentText(sb.toString());
+                return;
+            }
+
+            String bareFull = stripColors(formatted);
+            if (bareFull == null) return;
+            String upperBare = bareFull.toUpperCase(java.util.Locale.ROOT);
+            String upperSelf = self == null ? null : self.toUpperCase(java.util.Locale.ROOT);
+            int nameIdxBare = -1;
+            int youIdx = upperBare.indexOf("YOU");
+            if (youIdx >= 0) nameIdxBare = youIdx;
+            if (nameIdxBare < 0 && upperSelf != null) nameIdxBare = upperBare.indexOf(upperSelf);
+            if (nameIdxBare < 0) return;
+
+            int insertIdx = mapBareIndexToFormatted(formatted, nameIdxBare);
+            if (insertIdx < 0 || insertIdx > formatted.length()) return;
+            if (insertIdx >= colonPos) return;
+
             StringBuilder sb = new StringBuilder();
-            sb.append(formatted, 0, m.start());
-            sb.append(tag);
-            sb.append(formatted.substring(m.end() > m.start() ? m.end() : m.start()));
+            sb.append(formatted, 0, insertIdx);
+            if (insertIdx > 0 && !Character.isWhitespace(formatted.charAt(insertIdx - 1))) {
+                sb.append(' ');
+            }
+            sb.append(tag).append(' ');
+            sb.append(formatted.substring(insertIdx));
             event.message = new ChatComponentText(sb.toString());
         } catch (Throwable ignored) {}
+    }
+
+    private static int mapBareIndexToFormatted(String formatted, int bareIndex) {
+        if (formatted == null) return -1;
+        int fIdx = 0;
+        int bIdx = 0;
+        while (fIdx < formatted.length()) {
+            char c = formatted.charAt(fIdx);
+            if (c == '§' && fIdx + 1 < formatted.length()) {
+                fIdx += 2;
+                continue;
+            }
+            if (bIdx == bareIndex) return fIdx;
+            fIdx++;
+            bIdx++;
+        }
+        if (bIdx == bareIndex) return fIdx;
+        return -1;
     }
 
     private boolean hasLobbyCompassNamed() {

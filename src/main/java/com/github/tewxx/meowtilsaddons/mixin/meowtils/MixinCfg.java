@@ -34,6 +34,9 @@ public class MixinCfg {
     public int killInsultsKey = 0;
     public String killInsultsMode = "Message";
 
+    public boolean antiObbyMisplace = false;
+    public int antiObbyMisplaceKey = 0;
+
     public int rejectsCategoryX = 5;
     public int rejectsCategoryY = 125;
     public boolean rejectsCategoryExpanded = true;
