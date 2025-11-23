@@ -40,4 +40,7 @@ public class MixinCfg {
     public int rejectsCategoryX = 5;
     public int rejectsCategoryY = 125;
     public boolean rejectsCategoryExpanded = true;
+
+    public boolean trackerModule = false;
+    public int trackerModuleKey = 0;
 }
