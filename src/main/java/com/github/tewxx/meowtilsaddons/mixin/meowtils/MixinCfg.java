@@ -50,4 +50,8 @@ public class MixinCfg {
     public boolean nameSpoofer = false;
     public int nameSpooferKey = 0;
     public String spoofedName = "SpoofedName";
+
+    public boolean rankSpoofer = false;
+    public int rankSpooferKey = 0;
+    public String spoofedRank = "&c[ADMIN]";
 }

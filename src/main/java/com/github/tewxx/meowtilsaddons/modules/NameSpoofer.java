@@ -25,9 +25,10 @@ public class NameSpoofer extends Module {
         INSTANCE = this;
         
         ClientCommandHandler.instance.registerCommand(new SetSpoofNameCommand());
+        ClientCommandHandler.instance.registerCommand(new ResetSpoofNameCommand());
         
         try { 
-            this.tooltip("Replaces your username in chat. Use /setspoofname <name> to change."); 
+            this.tooltip("Replaces your username. Use /setspoofname <name> or /resetspoofname."); 
         } catch (Throwable ignored) {}
     }
 
@@ -57,13 +58,14 @@ public class NameSpoofer extends Module {
 
         updateSpoofName();
 
-        if (originalMessage.contains(realName)) {
+        if (!currentSpoofName.equals(realName) && originalMessage.contains(realName)) {
+
             String newMessageText = originalMessage.replace(realName, currentSpoofName);
-            
+
             event.message = new ChatComponentText(newMessageText);
         }
     }
-    
+
     private void updateSpoofName() {
         try {
             Class<?> cfgClass = Class.forName("wtf.tatp.meowtils.config.cfg");
@@ -107,25 +109,10 @@ public class NameSpoofer extends Module {
     }
 
     private static class SetSpoofNameCommand extends CommandBase {
-        @Override
-        public String getCommandName() {
-            return "setspoofname";
-        }
-
-        @Override
-        public String getCommandUsage(ICommandSender sender) {
-            return "/setspoofname <name>";
-        }
-
-        @Override
-        public int getRequiredPermissionLevel() {
-            return 0;
-        }
-        
-        @Override
-        public boolean canCommandSenderUseCommand(ICommandSender sender) {
-            return true;
-        }
+        @Override public String getCommandName() { return "setspoofname"; }
+        @Override public String getCommandUsage(ICommandSender sender) { return "/setspoofname <name>"; }
+        @Override public int getRequiredPermissionLevel() { return 0; }
+        @Override public boolean canCommandSenderUseCommand(ICommandSender sender) { return true; }
 
         @Override
         public void processCommand(ICommandSender sender, String[] args) {
@@ -137,11 +124,33 @@ public class NameSpoofer extends Module {
             }
 
             String newName = String.join(" ", args);
-            
             INSTANCE.setAndSaveSpoofName(newName);
-
+            
             String coloredName = newName.replaceAll("&", "\u00a7");
             sender.addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN + "[NameSpoofer] Name set to: " + EnumChatFormatting.RESET + coloredName));
+        }
+    }
+    
+    private static class ResetSpoofNameCommand extends CommandBase {
+        @Override public String getCommandName() { return "resetspoofname"; }
+        @Override public String getCommandUsage(ICommandSender sender) { return "/resetspoofname"; }
+        @Override public int getRequiredPermissionLevel() { return 0; }
+        @Override public boolean canCommandSenderUseCommand(ICommandSender sender) { return true; }
+
+        @Override
+        public void processCommand(ICommandSender sender, String[] args) {
+            if (INSTANCE == null) return;
+            
+            Minecraft mc = Minecraft.getMinecraft();
+            if (mc.thePlayer == null) return;
+
+            // Get the player's real name
+            String realName = mc.thePlayer.getName();
+
+            // Save the real name to config, effectively disabling the spoof
+            INSTANCE.setAndSaveSpoofName(realName);
+            
+            sender.addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN + "[NameSpoofer] Name reset to original: " + realName));
         }
     }
 }

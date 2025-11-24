@@ -62,7 +62,7 @@ public class AutomatedQuestTracker extends Module {
     private static final String[] CHAT_GAME_OVER = {"Game Over", "You died", "Eliminated", "Knocked out"};
 
     public AutomatedQuestTracker() {
-        super("AutomatedQuestTracker", "trackerModuleKey", "trackerModule", Module.Category.Advanced);
+        super("Quest Tracker", "trackerModuleKey", "trackerModule", Module.Category.Advanced);
         INSTANCE = this; 
         
         // Register the move command
