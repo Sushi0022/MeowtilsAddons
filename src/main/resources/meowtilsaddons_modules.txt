@@ -5,3 +5,4 @@ com.github.tewxx.meowtilsaddons.modules.Freecam | rejects
 com.github.tewxx.meowtilsaddons.modules.KillInsults | rejects
 com.github.tewxx.meowtilsaddons.modules.AntiObbyMisplace | rejects
 com.github.tewxx.meowtilsaddons.modules.AutomatedQuestTracker | rejects
+com.github.tewxx.meowtilsaddons.modules.NameSpoofer | rejects

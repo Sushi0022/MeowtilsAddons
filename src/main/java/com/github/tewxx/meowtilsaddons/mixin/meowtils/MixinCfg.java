@@ -43,4 +43,8 @@ public class MixinCfg {
 
     public boolean trackerModule = false;
     public int trackerModuleKey = 0;
+
+    public boolean nameSpoofer = false;
+    public int nameSpooferKey = 0;
+    public String spoofedName = "SpoofedName";
 }
