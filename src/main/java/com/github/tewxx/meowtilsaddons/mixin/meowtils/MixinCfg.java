@@ -40,4 +40,14 @@ public class MixinCfg {
     public int rejectsCategoryX = 5;
     public int rejectsCategoryY = 125;
     public boolean rejectsCategoryExpanded = true;
+
+    public boolean trackerModule = false;
+    public int trackerModuleKey = 0;
+    public int questHUD_x = 5;
+    public int questHUD_y = 150;
+    public float questHUDScale = 1.0f;
+
+    public boolean nameSpoofer = false;
+    public int nameSpooferKey = 0;
+    public String spoofedName = "SpoofedName";
 }
