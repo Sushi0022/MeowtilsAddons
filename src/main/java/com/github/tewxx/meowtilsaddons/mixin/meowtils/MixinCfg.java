@@ -54,4 +54,6 @@ public class MixinCfg {
     public boolean rankSpoofer = false;
     public int rankSpooferKey = 0;
     public String spoofedRank = "&c[ADMIN]";
+    public String rankSpooferSelection = "ADMIN";
+    public String rankSpooferPlusColor = "Red";
 }
