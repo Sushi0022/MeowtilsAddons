@@ -5,6 +5,7 @@ import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.IChatComponent;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -18,17 +19,19 @@ public class NameSpoofer extends Module {
 
     private static NameSpoofer INSTANCE;
     
+    // Default if config fails
     private String currentSpoofName = "SpoofedName"; 
 
     public NameSpoofer() {
         super("NameSpoofer", "nameSpooferKey", "nameSpoofer", Module.Category.Render);
         INSTANCE = this;
         
+        // Register commands with updated names
         ClientCommandHandler.instance.registerCommand(new SetSpoofNameCommand());
         ClientCommandHandler.instance.registerCommand(new ResetSpoofNameCommand());
         
         try { 
-            this.tooltip("Replaces your username. Use /setspoofname <name> or /resetspoofname."); 
+            this.tooltip("Replaces your username. Use /spoofname <name> or /resetname."); 
         } catch (Throwable ignored) {}
     }
 
@@ -36,7 +39,7 @@ public class NameSpoofer extends Module {
     public void onEnable() {
         super.onEnable();
         MinecraftForge.EVENT_BUS.register(this);
-        updateSpoofName();
+        updateSpoofName(); // Load from config when enabled
     }
 
     @Override
@@ -53,19 +56,16 @@ public class NameSpoofer extends Module {
         if (mc.thePlayer == null) return;
 
         String realName = mc.thePlayer.getName();
-        
         String originalMessage = event.message.getFormattedText();
 
         updateSpoofName();
 
         if (!currentSpoofName.equals(realName) && originalMessage.contains(realName)) {
-
             String newMessageText = originalMessage.replace(realName, currentSpoofName);
-
             event.message = new ChatComponentText(newMessageText);
         }
     }
-
+    
     private void updateSpoofName() {
         try {
             Class<?> cfgClass = Class.forName("wtf.tatp.meowtils.config.cfg");
@@ -81,10 +81,9 @@ public class NameSpoofer extends Module {
                     currentSpoofName = (String) val;
                 }
             }
-        } catch (Exception e) {
-        }
+        } catch (Exception e) {}
     }
-
+    
     public void setAndSaveSpoofName(String newName) {
         try {
             Class<?> cfgClass = Class.forName("wtf.tatp.meowtils.config.cfg");
@@ -108,9 +107,10 @@ public class NameSpoofer extends Module {
         }
     }
 
+    // --- COMMAND: /spoofname ---
     private static class SetSpoofNameCommand extends CommandBase {
-        @Override public String getCommandName() { return "setspoofname"; }
-        @Override public String getCommandUsage(ICommandSender sender) { return "/setspoofname <name>"; }
+        @Override public String getCommandName() { return "spoofname"; }
+        @Override public String getCommandUsage(ICommandSender sender) { return "/spoofname <name>"; }
         @Override public int getRequiredPermissionLevel() { return 0; }
         @Override public boolean canCommandSenderUseCommand(ICommandSender sender) { return true; }
 
@@ -119,7 +119,7 @@ public class NameSpoofer extends Module {
             if (INSTANCE == null) return;
 
             if (args.length == 0) {
-                sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Usage: /setspoofname <name>"));
+                sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Usage: /spoofname <name>"));
                 return;
             }
 
@@ -131,9 +131,10 @@ public class NameSpoofer extends Module {
         }
     }
     
+    // --- COMMAND: /resetname ---
     private static class ResetSpoofNameCommand extends CommandBase {
-        @Override public String getCommandName() { return "resetspoofname"; }
-        @Override public String getCommandUsage(ICommandSender sender) { return "/resetspoofname"; }
+        @Override public String getCommandName() { return "resetname"; }
+        @Override public String getCommandUsage(ICommandSender sender) { return "/resetname"; }
         @Override public int getRequiredPermissionLevel() { return 0; }
         @Override public boolean canCommandSenderUseCommand(ICommandSender sender) { return true; }
 
@@ -144,10 +145,7 @@ public class NameSpoofer extends Module {
             Minecraft mc = Minecraft.getMinecraft();
             if (mc.thePlayer == null) return;
 
-            // Get the player's real name
             String realName = mc.thePlayer.getName();
-
-            // Save the real name to config, effectively disabling the spoof
             INSTANCE.setAndSaveSpoofName(realName);
             
             sender.addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN + "[NameSpoofer] Name reset to original: " + realName));
