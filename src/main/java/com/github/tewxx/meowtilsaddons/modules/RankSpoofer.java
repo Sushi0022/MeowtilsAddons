@@ -36,13 +36,11 @@ public class RankSpoofer extends Module {
     private String currentSpoofRank = "&c[ADMIN]"; 
     private String currentSpoofName = ""; 
 
-    // Ranks that force RED message text
-    private static final List<String> RED_MSG_RANKS = Arrays.asList(
+    // Ranks that should have RED username and colon
+    private static final List<String> RED_NAME_RANKS = Arrays.asList(
         "ADMIN", "OWNER", "HYPIXEL", "MCP", "MOJANG", "SLOTH", "EVENTS", "ANGUS", "APPLE", "MCProHosting"
     );
 
-    // ... (PLUS_COLORS, RANK_COLORS, GUI_RANKS, ALL_RANKS maps remain the same) ...
-    // [Paste the Map definitions from the previous code here for brevity, they haven't changed]
     // --- PLUS COLORS MAP ---
     private static final Map<String, String> PLUS_COLORS = new TreeMap<>();
     static {
@@ -61,6 +59,7 @@ public class RankSpoofer extends Module {
         PLUS_COLORS.put("Black", "&0");      
     }
 
+    // --- NAME COLOR MAPPING ---
     private static final Map<String, String> RANK_COLORS = new HashMap<>();
     static {
         RANK_COLORS.put("MVP++", "&6");
@@ -117,6 +116,7 @@ public class RankSpoofer extends Module {
         RANK_COLORS.put("Custom", "&f");
     }
 
+    // --- GUI LIST ---
     private static final Map<String, String> GUI_RANKS = new HashMap<>();
     static {
         GUI_RANKS.put("Custom", "CUSTOM");
@@ -132,11 +132,12 @@ public class RankSpoofer extends Module {
         GUI_RANKS.put("ADMIN", "&c[ADMIN]");
         GUI_RANKS.put("OWNER", "&c[OWNER]");
         GUI_RANKS.put("YOUTUBE", "&c[&fYOUTUBE&c]");
-        GUI_RANKS.put("HYPIXEL", "&c[&6H&c]");
+        GUI_RANKS.put("HYPIXEL", "&c[&6ዞ&c]"); // Updated with unicode ዞ
         GUI_RANKS.put("SLOTH", "&c[SLOTH]");
         GUI_RANKS.put("MOJANG", "&6[MOJANG]");
     }
 
+    // --- ALL RANKS ---
     private static final Map<String, String> ALL_RANKS = new HashMap<>(GUI_RANKS);
     static {
         ALL_RANKS.put("EVENTS", "&6[EVENTS]");
@@ -172,8 +173,7 @@ public class RankSpoofer extends Module {
         
         try { this.tooltip("Replaces rank prefix. Customize MVP+ color in settings."); } catch (Throwable ignored) {}
     }
-    
-    // ... (onEnable, onDisable same as before) ...
+
     @Override
     public void onEnable() {
         super.onEnable();
@@ -188,6 +188,28 @@ public class RankSpoofer extends Module {
         MinecraftForge.EVENT_BUS.unregister(this);
     }
 
+    // --- VISIBILITY TOGGLER ---
+    @SubscribeEvent
+    public void onTick(TickEvent.ClientTickEvent event) {
+        if (event.phase == TickEvent.Phase.START && this.getState()) {
+            updateVisibility();
+        }
+    }
+
+    private void updateVisibility() {
+        try {
+            String selectedRank = this.rankSelector.getValue();
+            boolean showPlusOptions = selectedRank.equals("MVP+") || selectedRank.equals("MVP++");
+
+            Class<?> valueClass = this.plusColorSelector.getClass().getSuperclass(); 
+            try {
+                Field visibleField = valueClass.getDeclaredField("visible");
+                visibleField.setAccessible(true);
+                visibleField.setBoolean(this.plusColorSelector, showPlusOptions);
+            } catch (NoSuchFieldException e) {}
+        } catch (Exception e) {}
+    }
+
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onChatReceived(ClientChatReceivedEvent event) {
         if (!this.getState() || event.type == 2) return; 
@@ -199,14 +221,17 @@ public class RankSpoofer extends Module {
         String originalMsg = event.message.getFormattedText();
         String unformattedMsg = event.message.getUnformattedText();
 
+        // 1. SYNC WITH DROPDOWN
         String selectedKey = this.rankSelector.getValue();
         if (!selectedKey.equals("Custom") && GUI_RANKS.containsKey(selectedKey)) {
             this.currentSpoofRank = GUI_RANKS.get(selectedKey);
             
+            // --- DYNAMIC PLUS COLOR LOGIC ---
             if (selectedKey.equals("MVP+") || selectedKey.equals("MVP++")) {
                 String plusColorName = this.plusColorSelector.getValue();
                 String plusCode = PLUS_COLORS.get(plusColorName);
                 if (plusCode == null) plusCode = "&c"; 
+
                 if (selectedKey.equals("MVP+")) {
                     this.currentSpoofRank = "&b[MVP" + plusCode + "+&b]";
                 } else {
@@ -217,6 +242,7 @@ public class RankSpoofer extends Module {
 
         if (currentSpoofRank.equals("RESET")) return;
 
+        // 2. Determine Target Name
         String targetName = null;
         updateNameSpooferConfig();
         
@@ -228,6 +254,7 @@ public class RankSpoofer extends Module {
 
         if (targetName == null) return; 
 
+        // 3. Color-Safe Regex Replacement
         String safeRegex = makeColorSafeRegex(targetName);
         Pattern p = Pattern.compile("^(.*?)(" + safeRegex + ")");
         Matcher m = p.matcher(originalMsg);
@@ -238,32 +265,24 @@ public class RankSpoofer extends Module {
             
             String newRankPrefix = currentSpoofRank.replace("&", "\u00a7") + " ";
             
-            // --- FIXED COLOR LOGIC ---
+            // --- COLOR LOGIC ---
             String nameColorCode = RANK_COLORS.getOrDefault(selectedKey, "&f");
             String nameColor = nameColorCode.replace("&", "\u00a7");
             
-            String colonColor = "\u00a7f"; // White colon for most
-            String messageColor = "\u00a7f"; // White message for most
+            String colonColor = selectedKey.equals("Default") ? "\u00a77" : "\u00a7f";
             
-            if (RED_MSG_RANKS.contains(selectedKey)) {
-                // Admin/Owner/H: Red Name, White Colon, RED Message
-                nameColor = "\u00a7c";
-                colonColor = "\u00a7f"; // Usually white colon, but let's check your preference
+            String messageColor = "\u00a7f"; 
+            if (RED_NAME_RANKS.contains(selectedKey)) {
                 messageColor = "\u00a7c"; 
             } else if (selectedKey.equals("Default")) {
-                // Default: Gray Name, Gray Colon, Gray Message
-                nameColor = "\u00a77";
-                colonColor = "\u00a77";
                 messageColor = "\u00a77";
             }
 
-            // Check for colon
             int colonIndex = restOfMessage.indexOf(":");
             if (colonIndex > -1) {
-                String preColon = restOfMessage.substring(0, colonIndex + 1); // Contains the colon
+                String preColon = restOfMessage.substring(0, colonIndex + 1); 
                 String postColon = restOfMessage.substring(colonIndex + 1);
                 
-                // Skip existing color codes at start of message
                 int contentStart = 0;
                 while (contentStart < postColon.length() && postColon.charAt(contentStart) == ' ') {
                     contentStart++;
@@ -272,19 +291,16 @@ public class RankSpoofer extends Module {
                     contentStart += 2;
                 }
                 
-                // Rebuild message part: COLON_COLOR + ": " + MESSAGE_COLOR + CONTENT
-                // Note: We reconstruct the colon manually to be safe
-                restOfMessage = colonColor + ": " + messageColor + postColon.substring(contentStart);
+                restOfMessage = preColon + " " + messageColor + postColon.substring(contentStart);
+                // Apply colon color
+                restOfMessage = colonColor + restOfMessage.substring(2); 
             }
 
-            // Final: PREFIX + NAME_COLOR + NAME + REST(which starts with colored colon)
             String finalMsg = newRankPrefix + nameColor + matchedName + "\u00a7r" + restOfMessage;
-            
             event.message = new ChatComponentText(finalMsg);
         }
     }
-
-    // ... (Rest of helper methods: makeColorSafeRegex, updateConfigValues, setAndSave, Commands) ...
+    
     private String makeColorSafeRegex(String input) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < input.length(); i++) {
@@ -302,21 +318,28 @@ public class RankSpoofer extends Module {
             Field vField = cfgClass.getDeclaredField("v");
             vField.setAccessible(true);
             Object cfgInstance = vField.get(null);
+            
             if (cfgInstance != null) {
                 Field rankField = cfgClass.getDeclaredField("spoofedRank");
                 rankField.setAccessible(true);
                 Object rankVal = rankField.get(cfgInstance);
                 if (rankVal != null) currentSpoofRank = (String) rankVal;
+                
+                Field nameStringField = cfgClass.getDeclaredField("spoofedName");
+                nameStringField.setAccessible(true);
+                Object nameVal = nameStringField.get(cfgInstance);
+                if (nameVal != null) currentSpoofName = (String) nameVal;
             }
         } catch (Exception e) {}
     }
-
+    
     private void updateNameSpooferConfig() {
         try {
             Class<?> cfgClass = Class.forName("wtf.tatp.meowtils.config.cfg");
             Field vField = cfgClass.getDeclaredField("v");
             vField.setAccessible(true);
             Object cfgInstance = vField.get(null);
+            
             if (cfgInstance != null) {
                 Field nameStringField = cfgClass.getDeclaredField("spoofedName");
                 nameStringField.setAccessible(true);
@@ -325,7 +348,7 @@ public class RankSpoofer extends Module {
             }
         } catch (Exception e) {}
     }
-
+    
     public void setAndSaveSpoofRank(String newRank) {
         try {
             Class<?> cfgClass = Class.forName("wtf.tatp.meowtils.config.cfg");
@@ -341,26 +364,6 @@ public class RankSpoofer extends Module {
                 saveMethod.setAccessible(true);
                 saveMethod.invoke(null);
             }
-        } catch (Exception e) {}
-    }
-
-    // Visibility Toggler
-    @SubscribeEvent
-    public void onTick(TickEvent.ClientTickEvent event) {
-        if (event.phase == TickEvent.Phase.START && this.getState()) {
-            updateVisibility();
-        }
-    }
-    private void updateVisibility() {
-        try {
-            String selectedRank = this.rankSelector.getValue();
-            boolean showPlusOptions = selectedRank.equals("MVP+") || selectedRank.equals("MVP++");
-            Class<?> valueClass = this.plusColorSelector.getClass().getSuperclass(); 
-            try {
-                Field visibleField = valueClass.getDeclaredField("visible");
-                visibleField.setAccessible(true);
-                visibleField.setBoolean(this.plusColorSelector, showPlusOptions);
-            } catch (NoSuchFieldException e) {}
         } catch (Exception e) {}
     }
     
@@ -380,11 +383,13 @@ public class RankSpoofer extends Module {
         @Override public String getCommandUsage(ICommandSender sender) { return "/setspoofrank <rank_name>"; }
         @Override public int getRequiredPermissionLevel() { return 0; }
         @Override public boolean canCommandSenderUseCommand(ICommandSender sender) { return true; }
+        
         @Override
         public List<String> addTabCompletionOptions(ICommandSender sender, String[] args, BlockPos pos) {
             if (args.length == 1) return getListOfStringsMatchingLastWord(args, ALL_RANKS.keySet().toArray(new String[0]));
             return null;
         }
+
         @Override
         public void processCommand(ICommandSender sender, String[] args) {
             if (INSTANCE == null) return;
@@ -392,11 +397,14 @@ public class RankSpoofer extends Module {
                 sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Usage: /setspoofrank <RankName>"));
                 return;
             }
+
             String input = String.join(" ", args);
             String newRank;
             if (ALL_RANKS.containsKey(input)) { newRank = ALL_RANKS.get(input); } else { newRank = input; }
+            
             INSTANCE.setAndSaveSpoofRank(newRank);
             INSTANCE.setDropdownToCustom();
+            
             String coloredRank = newRank.replace("&", "\u00a7");
             sender.addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN + "[RankSpoofer] Rank set to: " + coloredRank));
         }
@@ -410,7 +418,7 @@ public class RankSpoofer extends Module {
         @Override public void processCommand(ICommandSender sender, String[] args) {
             if (INSTANCE == null) return;
             INSTANCE.setAndSaveSpoofRank("RESET");
-            sender.addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN + "[RankSpoofer] Rank reset."));
+            sender.addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN + "[RankSpoofer] Rank reset to original server rank."));
         }
     }
 }
